@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="우리 근무표">
+<meta name="theme-color" content="#F7FBFF">
+<title>우리 근무표</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    min-height:100vh;min-height:100dvh;
+    background:linear-gradient(160deg,#F7FBFF 0%,#F3FBF5 40%,#FFFCF0 100%);
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
+    padding:24px 16px;padding-top:max(24px,env(safe-area-inset-top));
+    padding-bottom:max(24px,env(safe-area-inset-bottom));
+    -webkit-user-select:none;user-select:none;
+  }
+  button{font-family:inherit;-webkit-tap-highlight-color:transparent}
+  @keyframes syncPulse{0%{opacity:1}50%{opacity:0.4}100%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<script type="module">
+// Firebase modular SDK
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBoWEww6yUb9bjSTy5oyNPTFTuHT07ppTQ",
+  authDomain: "our-schedule-ee491.firebaseapp.com",
+  databaseURL: "https://our-schedule-ee491-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "our-schedule-ee491",
+  storageBucket: "our-schedule-ee491.firebasestorage.app",
+  messagingSenderId: "397619973905",
+  appId: "1:397619973905:web:ef54d6ff04d16e6ac0c6b0"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const schedulesRef = ref(db, "schedules");
+const namesRef = ref(db, "names");
+
+const el = React.createElement;
+const {useState,useCallback,useEffect} = React;
+
+const SHIFTS = {
+  none:{label:"—",color:"transparent"},
+  day:{label:"D",fullLabel:"데이",color:"#7EC8E3",lightColor:"#E8F4FA"},
+  evening:{label:"E",fullLabel:"이브닝",color:"#8FD5A6",lightColor:"#EAFAF0"},
+  night:{label:"N",fullLabel:"나이트",color:"#F5D76E",lightColor:"#FDF8E8"},
+  off:{label:"OFF",fullLabel:"오프",color:"#D4A0D0",lightColor:"#F5EAF4"},
+};
+const SHIFT_ORDER=["none","day","evening","night","off"];
+const WEEKDAYS=["일","월","화","수","목","금","토"];
+
+function getDaysInMonth(y,m){return new Date(y,m+1,0).getDate()}
+function getFirstDay(y,m){return new Date(y,m,1).getDay()}
+function mk(y,m,d,p){return y+"-"+m+"-"+d+"-"+p}
+
+function App(){
+  const today=new Date();
+  const [year,setYear]=useState(today.getFullYear());
+  const [month,setMonth]=useState(today.getMonth());
+  const [schedules,setSchedules]=useState({});
+  const [activePerson,setActivePerson]=useState(0);
+  const [names,setNames]=useState(["정우","여자친구"]);
+  const [editingName,setEditingName]=useState(null);
+  const [tempName,setTempName]=useState("");
+  const [locked,setLocked]=useState(true);
+  const [loaded,setLoaded]=useState(false);
+  const [syncStatus,setSyncStatus]=useState(null);
+  const [online,setOnline]=useState(navigator.onLine);
+
+  const pc=[
+    {main:"#5B9BD5",soft:"#EDF4FC",ring:"#C4DBEF"},
+    {main:"#C07ABC",soft:"#F8EFF7",ring:"#E4C8E1"},
+  ];
+
+  useEffect(()=>{
+    const on2=()=>setOnline(true);
+    const off2=()=>setOnline(false);
+    window.addEventListener("online",on2);
+    window.addEventListener("offline",off2);
+    return()=>{window.removeEventListener("online",on2);window.removeEventListener("offline",off2)};
+  },[]);
+
+  useEffect(()=>{
+    onValue(schedulesRef, snap=>{
+      const data=snap.val();
+      if(data) setSchedules(data); else setSchedules({});
+      setLoaded(true);
+    });
+    onValue(namesRef, snap=>{
+      const data=snap.val();
+      if(data) setNames(data);
+    });
+    return()=>{off(schedulesRef);off(namesRef)};
+  },[]);
+
+  const flash=(type)=>{setSyncStatus(type);setTimeout(()=>setSyncStatus(null),1500)};
+
+  const saveSchedules=(updated)=>{
+    set(schedulesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
+  };
+  const saveNames=(updated)=>{
+    set(namesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
+  };
+
+  const prevMonth=()=>{if(month===0){setYear(y=>y-1);setMonth(11)}else setMonth(m=>m-1)};
+  const nextMonth=()=>{if(month===11){setYear(y=>y+1);setMonth(0)}else setMonth(m=>m+1)};
+
+  const cycle=useCallback((day)=>{
+    if(locked)return;
+    const key=mk(year,month,day,activePerson);
+    setSchedules(prev=>{
+      const cur=prev[key]||"none";
+      const next=SHIFT_ORDER[(SHIFT_ORDER.indexOf(cur)+1)%SHIFT_ORDER.length];
+      const updated={...prev};
+      if(next==="none"){delete updated[key]}else{updated[key]=next}
+      saveSchedules(updated);
+      return updated;
+    });
+  },[year,month,activePerson,locked]);
+
+  const gs=(d,p)=>schedules[mk(year,month,d,p)]||"none";
+  const dim=getDaysInMonth(year,month);
+  const fd=getFirstDay(year,month);
+  const isToday=d=>year===today.getFullYear()&&month===today.getMonth()&&d===today.getDate();
+  const bothOff=d=>gs(d,0)==="off"&&gs(d,1)==="off";
+  const sameSh=d=>{const a=gs(d,0),b=gs(d,1);return(a!=="none"&&b!=="none"&&a===b&&a!=="off")?a:null};
+
+  const startEdit=i=>{if(locked)return;setEditingName(i);setTempName(names[i])};
+  const saveN=()=>{
+    if(tempName.trim()){
+      const updated=names.map((n,i)=>i===editingName?tempName.trim():n);
+      setNames(updated);saveNames(updated);
+    }
+    setEditingName(null);
+  };
+
+  const stats=[0,1].map(p=>{
+    const c={day:0,evening:0,night:0,off:0};
+    for(let d=1;d<=dim;d++){const s=gs(d,p);if(s!=="none")c[s]++}
+    return c;
+  });
+
+  const offDays=[],sameDays={day:[],evening:[],night:[]};
+  for(let d=1;d<=dim;d++){
+    if(bothOff(d))offDays.push(d);
+    const ss=sameSh(d);if(ss)sameDays[ss].push(d);
+  }
+  const hasSame=Object.values(sameDays).some(a=>a.length>0);
+
+  const s=(tag,style,...ch)=>el(tag,{style},...ch);
+
+  if(!loaded){
+    return s("div",{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12},
+      s("div",{fontSize:32},"👩‍⚕️👨‍⚕️"),
+      s("div",{fontSize:15,fontWeight:600,color:"#A0A4B0"},"근무표 불러오는 중...")
+    );
+  }
+
+  return el("div",null,
+    s("div",{textAlign:"center",marginBottom:24},
+      s("h1",{fontSize:22,fontWeight:800,color:"#3A3A4A",letterSpacing:"-0.5px"},"👩‍⚕️ 우리 근무표 👨‍⚕️"),
+      s("p",{fontSize:13,color:"#A0A4B0",marginTop:4},"날짜를 눌러 근무를 입력하세요"),
+      s("div",{height:20,marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:6},
+        s("span",{width:6,height:6,borderRadius:3,display:"inline-block",
+          background:online?"#4AAF6E":"#E07070",
+          animation:!online?"syncPulse 1.5s infinite":"none"}),
+        s("span",{fontSize:11,fontWeight:600,
+          color:syncStatus==="saved"?"#4AAF6E":syncStatus==="error"?"#E07070":"#BCC0CC"},
+          syncStatus==="saved"?"✓ 동기화 완료":syncStatus==="error"?"동기화 실패":online?"실시간 연동 중":"오프라인"
+        )
+      )
+    ),
+
+    s("div",{display:"flex",justifyContent:"center",marginBottom:16},
+      el("button",{onClick:()=>setLocked(l=>!l),style:{
+        display:"flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:30,border:"none",
+        background:locked?"linear-gradient(135deg,#F0F0F5,#E8E8EE)":"linear-gradient(135deg,#E3F5EA,#D5F0DF)",
+        color:locked?"#8A8A9A":"#4AAF6E",fontWeight:700,fontSize:14,cursor:"pointer",
+        boxShadow:locked?"0 2px 8px rgba(0,0,0,0.06)":"0 2px 12px rgba(74,175,110,0.2)",
+        transition:"all 0.25s ease",
+      }},
+        s("span",{fontSize:18},locked?"🔒":"🔓"),
+        locked?"잠금 중 — 눌러서 편집":"편집 중 — 눌러서 잠금"
+      )
+    ),
+
+    s("div",{display:"flex",gap:10,marginBottom:16,justifyContent:"center",
+      opacity:locked?0.5:1,pointerEvents:locked?"none":"auto",transition:"opacity 0.25s ease"},
+      ...[0,1].map(idx=>
+        el("button",{key:idx,onClick:()=>setActivePerson(idx),
+          onDoubleClick:()=>startEdit(idx),
+          style:{
+            flex:"0 1 160px",padding:"10px 16px",borderRadius:14,
+            border:activePerson===idx?"2.5px solid "+pc[idx].main:"2.5px solid transparent",
+            background:activePerson===idx?pc[idx].soft:"#fff",
+            color:activePerson===idx?pc[idx].main:"#A0A4B0",
+            fontWeight:700,fontSize:14,cursor:"pointer",transition:"all 0.2s ease",
+            boxShadow:activePerson===idx?"0 2px 12px "+pc[idx].ring:"0 1px 4px rgba(0,0,0,0.04)",
+          }},
+          editingName===idx
+            ?el("input",{autoFocus:true,value:tempName,
+                onChange:ev=>setTempName(ev.target.value),
+                onBlur:saveN,onKeyDown:ev=>ev.key==="Enter"&&saveN(),
+                onClick:ev=>ev.stopPropagation(),
+                style:{border:"none",background:"transparent",color:pc[idx].main,
+                  fontWeight:700,fontSize:14,textAlign:"center",width:"100%",outline:"none"}})
+            :el("span",null,(idx===0?"👨‍⚕️ ":"👩‍⚕️ ")+names[idx])
+        )
+      )
+    ),
+
+    !locked&&s("p",{textAlign:"center",fontSize:11,color:"#BCC0CC",marginTop:-8,marginBottom:14},
+      "이름을 더블클릭하면 수정할 수 있어요"),
+
+    s("div",{display:"flex",gap:6,justifyContent:"center",marginBottom:10,flexWrap:"wrap"},
+      ...SHIFT_ORDER.filter(x=>x!=="none").map(sk=>
+        s("div",{key:sk,display:"flex",alignItems:"center",gap:5,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
+          s("span",{width:18,height:18,borderRadius:6,background:SHIFTS[sk].color,
+            display:"flex",alignItems:"center",justifyContent:"center",
+            color:"#fff",fontSize:9,fontWeight:800,
+            textShadow:sk==="night"?"0 0 2px rgba(0,0,0,0.2)":"none"},SHIFTS[sk].label),
+          SHIFTS[sk].fullLabel
+        )
+      )
+    ),
+    s("div",{display:"flex",gap:8,justifyContent:"center",marginBottom:18,flexWrap:"wrap"},
+      s("div",{display:"flex",alignItems:"center",gap:4,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
+        s("span",{fontSize:12},"💕")," 같이 오프"),
+      s("div",{display:"flex",alignItems:"center",gap:4,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
+        s("span",{fontSize:12},"🤝")," 동시 출근")
+    ),
+
+    s("div",{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"0 4px"},
+      el("button",{onClick:prevMonth,style:{width:36,height:36,borderRadius:10,border:"none",background:"#fff",
+        fontSize:16,cursor:"pointer",color:"#5A5A6A",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
+        display:"flex",alignItems:"center",justifyContent:"center"}},"←"),
+      s("h2",{fontSize:18,fontWeight:800,color:"#3A3A4A"},year+"년 "+(month+1)+"월"),
+      el("button",{onClick:nextMonth,style:{width:36,height:36,borderRadius:10,border:"none",background:"#fff",
+        fontSize:16,cursor:"pointer",color:"#5A5A6A",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
+        display:"flex",alignItems:"center",justifyContent:"center"}},"→")
+    ),
+
+    s("div",{background:"#fff",borderRadius:18,padding:12,boxShadow:"0 4px 20px rgba(0,0,0,0.05)",position:"relative"},
+      locked&&el("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,borderRadius:18,zIndex:2}}),
+
+      s("div",{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:6},
+        ...WEEKDAYS.map((d,i)=>
+          s("div",{key:d,textAlign:"center",fontSize:12,fontWeight:700,
+            color:i===0?"#E88B8B":i===6?"#7EB3E0":"#A0A4B0",padding:"4px 0"},d)
+        )
+      ),
+
+      s("div",{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3},
+        ...Array.from({length:fd}).map((_,i)=>el("div",{key:"e"+i,style:{aspectRatio:"1/1.15"}})),
+        ...Array.from({length:dim}).map((_,i)=>{
+          const day=i+1,bo=bothOff(day),ss=sameSh(day);
+          const dow=(fd+i)%7,isSun=dow===0,isSat=dow===6;
+          let bg="#FAFBFE";
+          if(bo)bg="linear-gradient(135deg,#FCF0F4,#F8E8EF)";
+          else if(ss)bg="linear-gradient(135deg,"+SHIFTS[ss].lightColor+",#FAFBFE)";
+
+          return el("button",{key:day,onClick:()=>cycle(day),style:{
+            aspectRatio:"1/1.15",borderRadius:10,
+            border:isToday(day)?"2px solid #3A3A4A":"1.5px solid #EEEEF3",
+            background:bg,cursor:locked?"default":"pointer",
+            padding:2,display:"flex",flexDirection:"column",alignItems:"center",
+            justifyContent:"flex-start",gap:1,position:"relative",
+            transition:"transform 0.1s ease",
+          }},
+            s("span",{fontSize:11,fontWeight:isToday(day)?800:600,
+              color:isSun?"#E88B8B":isSat?"#7EB3E0":"#3A3A4A",
+              lineHeight:1,marginTop:3},""+day),
+            s("div",{display:"flex",flexDirection:"column",gap:1,marginTop:1},
+              ...[0,1].map(p=>{
+                const sh=gs(day,p);
+                if(sh==="none")return el("div",{key:p,style:{width:28,height:12,borderRadius:4,
+                  background:(!locked&&activePerson===p)?pc[p].ring+"55":"transparent"}});
+                return s("div",{key:p,width:28,height:12,borderRadius:4,background:SHIFTS[sh].color,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  boxShadow:"0 1px 3px "+SHIFTS[sh].color+"33"},
+                  s("span",{fontSize:7.5,fontWeight:800,color:"#fff",letterSpacing:"0.3px",
+                    textShadow:sh==="night"?"0 0 2px rgba(0,0,0,0.25)":"none"},SHIFTS[sh].label)
+                );
+              })
+            ),
+            bo&&s("span",{position:"absolute",bottom:1,fontSize:8},"💕"),
+            ss&&!bo&&s("span",{position:"absolute",bottom:1,fontSize:8},"🤝")
+          );
+        })
+      )
+    ),
+
+    s("div",{marginTop:18,display:"flex",gap:10},
+      ...[0,1].map(idx=>
+        s("div",{key:idx,flex:1,background:"#fff",borderRadius:14,padding:"12px 14px",
+          boxShadow:"0 2px 10px rgba(0,0,0,0.04)"},
+          s("div",{fontSize:13,fontWeight:700,color:pc[idx].main,marginBottom:8},
+            (idx===0?"👨‍⚕️ ":"👩‍⚕️ ")+names[idx]),
+          s("div",{display:"flex",flexWrap:"wrap",gap:6},
+            ...["day","evening","night","off"].map(sk=>
+              s("div",{key:sk,display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#5A5A6A"},
+                s("span",{width:8,height:8,borderRadius:3,background:SHIFTS[sk].color,display:"inline-block"}),
+                ""+stats[idx][sk]
+              )
+            )
+          )
+        )
+      )
+    ),
+
+    offDays.length>0&&s("div",{marginTop:10,background:"linear-gradient(135deg,#FCF0F4,#F8E8EF)",
+      borderRadius:14,padding:"12px 16px",textAlign:"center"},
+      s("span",{fontSize:13,fontWeight:700,color:"#C07ABC"},
+        "💕 같이 쉬는 날: "+offDays.map(d=>d+"일").join(", "))
+    ),
+
+    hasSame&&s("div",{marginTop:10,background:"linear-gradient(135deg,#EDF6FF,#E8F5ED)",
+      borderRadius:14,padding:"12px 16px"},
+      s("div",{fontSize:13,fontWeight:700,color:"#5B9BD5",marginBottom:6,textAlign:"center"},"🤝 동시 출근"),
+      s("div",{display:"flex",flexDirection:"column",gap:4},
+        ...["day","evening","night"].map(sk=>{
+          if(sameDays[sk].length===0)return null;
+          return s("div",{key:sk,display:"flex",alignItems:"center",gap:6,justifyContent:"center",fontSize:12,color:"#5A5A6A"},
+            s("span",{width:16,height:16,borderRadius:5,background:SHIFTS[sk].color,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:8,fontWeight:800,color:"#fff",
+              textShadow:sk==="night"?"0 0 2px rgba(0,0,0,0.25)":"none"},SHIFTS[sk].label),
+            s("span",{fontWeight:600},sameDays[sk].map(d=>d+"일").join(", "))
+          );
+        })
+      )
+    ),
+
+    s("div",{textAlign:"center",marginTop:16,paddingBottom:20,display:"flex",flexDirection:"column",gap:8,alignItems:"center"},
+      el("button",{onClick:()=>{
+        if(locked)return;
+        if(confirm("이번 달 근무표를 초기화할까요?")){
+          const updated={...schedules};
+          for(let d=1;d<=dim;d++){delete updated[mk(year,month,d,0)];delete updated[mk(year,month,d,1)]}
+          setSchedules(updated);saveSchedules(updated);
+        }
+      },style:{padding:"8px 20px",borderRadius:10,border:"none",background:"#EEEEF3",
+        color:locked?"#CCCCD5":"#A0A4B0",fontSize:13,fontWeight:600,cursor:locked?"default":"pointer"}},
+        "이번 달 초기화"),
+      el("button",{onClick:()=>{
+        if(locked)return;
+        if(confirm("전체 데이터를 삭제할까요?")){
+          setSchedules({});saveSchedules({});
+          setNames(["정우","여자친구"]);saveNames(["정우","여자친구"]);
+        }
+      },style:{padding:"6px 16px",borderRadius:8,border:"none",background:"transparent",
+        color:locked?"#DDDDE2":"#CCCCDD",fontSize:11,fontWeight:600,cursor:locked?"default":"pointer"}},
+        "전체 데이터 삭제")
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("app")).render(el(App));
+</script>
+</body>
+</html>
