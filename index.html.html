@@ -26,14 +26,13 @@
 <body>
 <div id="app"></div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
 
-<script type="module">
-// Firebase modular SDK
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-
+// Firebase init
 const firebaseConfig = {
   apiKey: "AIzaSyBoWEww6yUb9bjSTy5oyNPTFTuHT07ppTQ",
   authDomain: "our-schedule-ee491.firebaseapp.com",
@@ -43,14 +42,13 @@ const firebaseConfig = {
   messagingSenderId: "397619973905",
   appId: "1:397619973905:web:ef54d6ff04d16e6ac0c6b0"
 };
-
-const fbApp = initializeApp(firebaseConfig);
-const db = getDatabase(fbApp);
-const schedulesRef = ref(db, "schedules");
-const namesRef = ref(db, "names");
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const schedulesRef = db.ref("schedules");
+const namesRef = db.ref("names");
 
 const el = React.createElement;
-const {useState,useCallback,useEffect} = React;
+const {useState,useCallback,useEffect,useRef} = React;
 
 const SHIFTS = {
   none:{label:"—",color:"transparent"},
@@ -85,34 +83,37 @@ function App(){
     {main:"#C07ABC",soft:"#F8EFF7",ring:"#E4C8E1"},
   ];
 
+  // Listen for online/offline
   useEffect(()=>{
-    const on2=()=>setOnline(true);
-    const off2=()=>setOnline(false);
-    window.addEventListener("online",on2);
-    window.addEventListener("offline",off2);
-    return()=>{window.removeEventListener("online",on2);window.removeEventListener("offline",off2)};
+    const on=()=>setOnline(true);
+    const off=()=>setOnline(false);
+    window.addEventListener("online",on);
+    window.addEventListener("offline",off);
+    return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off)};
   },[]);
 
+  // Firebase real-time listeners
   useEffect(()=>{
-    onValue(schedulesRef, snap=>{
+    schedulesRef.on("value", snap=>{
       const data=snap.val();
-      if(data) setSchedules(data); else setSchedules({});
+      if(data) setSchedules(data);
+      else setSchedules({});
       setLoaded(true);
     });
-    onValue(namesRef, snap=>{
+    namesRef.on("value", snap=>{
       const data=snap.val();
       if(data) setNames(data);
     });
-    return()=>{off(schedulesRef);off(namesRef)};
+    return()=>{schedulesRef.off();namesRef.off()};
   },[]);
 
   const flash=(type)=>{setSyncStatus(type);setTimeout(()=>setSyncStatus(null),1500)};
 
   const saveSchedules=(updated)=>{
-    set(schedulesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
+    schedulesRef.set(updated).then(()=>flash("saved")).catch(()=>flash("error"));
   };
   const saveNames=(updated)=>{
-    set(namesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
+    namesRef.set(updated).then(()=>flash("saved")).catch(()=>flash("error"));
   };
 
   const prevMonth=()=>{if(month===0){setYear(y=>y-1);setMonth(11)}else setMonth(m=>m-1)};
@@ -124,8 +125,8 @@ function App(){
     setSchedules(prev=>{
       const cur=prev[key]||"none";
       const next=SHIFT_ORDER[(SHIFT_ORDER.indexOf(cur)+1)%SHIFT_ORDER.length];
-      const updated={...prev};
-      if(next==="none"){delete updated[key]}else{updated[key]=next}
+      const updated={...prev,[key]:next};
+      if(next==="none"){delete updated[key]}
       saveSchedules(updated);
       return updated;
     });
@@ -142,7 +143,8 @@ function App(){
   const saveN=()=>{
     if(tempName.trim()){
       const updated=names.map((n,i)=>i===editingName?tempName.trim():n);
-      setNames(updated);saveNames(updated);
+      setNames(updated);
+      saveNames(updated);
     }
     setEditingName(null);
   };
@@ -163,17 +165,21 @@ function App(){
   const s=(tag,style,...ch)=>el(tag,{style},...ch);
 
   if(!loaded){
-    return s("div",{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12},
+    return s("div",{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
+      flexDirection:"column",gap:12},
       s("div",{fontSize:32},"👩‍⚕️👨‍⚕️"),
       s("div",{fontSize:15,fontWeight:600,color:"#A0A4B0"},"근무표 불러오는 중...")
     );
   }
 
   return el("div",null,
+    // Header
     s("div",{textAlign:"center",marginBottom:24},
       s("h1",{fontSize:22,fontWeight:800,color:"#3A3A4A",letterSpacing:"-0.5px"},"👩‍⚕️ 우리 근무표 👨‍⚕️"),
       s("p",{fontSize:13,color:"#A0A4B0",marginTop:4},"날짜를 눌러 근무를 입력하세요"),
+      // Sync status
       s("div",{height:20,marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:6},
+        // Online indicator
         s("span",{width:6,height:6,borderRadius:3,display:"inline-block",
           background:online?"#4AAF6E":"#E07070",
           animation:!online?"syncPulse 1.5s infinite":"none"}),
@@ -184,6 +190,7 @@ function App(){
       )
     ),
 
+    // Lock
     s("div",{display:"flex",justifyContent:"center",marginBottom:16},
       el("button",{onClick:()=>setLocked(l=>!l),style:{
         display:"flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:30,border:"none",
@@ -197,6 +204,7 @@ function App(){
       )
     ),
 
+    // Person selector
     s("div",{display:"flex",gap:10,marginBottom:16,justifyContent:"center",
       opacity:locked?0.5:1,pointerEvents:locked?"none":"auto",transition:"opacity 0.25s ease"},
       ...[0,1].map(idx=>
@@ -225,6 +233,7 @@ function App(){
     !locked&&s("p",{textAlign:"center",fontSize:11,color:"#BCC0CC",marginTop:-8,marginBottom:14},
       "이름을 더블클릭하면 수정할 수 있어요"),
 
+    // Legend
     s("div",{display:"flex",gap:6,justifyContent:"center",marginBottom:10,flexWrap:"wrap"},
       ...SHIFT_ORDER.filter(x=>x!=="none").map(sk=>
         s("div",{key:sk,display:"flex",alignItems:"center",gap:5,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
@@ -243,6 +252,7 @@ function App(){
         s("span",{fontSize:12},"🤝")," 동시 출근")
     ),
 
+    // Month nav
     s("div",{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"0 4px"},
       el("button",{onClick:prevMonth,style:{width:36,height:36,borderRadius:10,border:"none",background:"#fff",
         fontSize:16,cursor:"pointer",color:"#5A5A6A",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
@@ -253,6 +263,7 @@ function App(){
         display:"flex",alignItems:"center",justifyContent:"center"}},"→")
     ),
 
+    // Calendar
     s("div",{background:"#fff",borderRadius:18,padding:12,boxShadow:"0 4px 20px rgba(0,0,0,0.05)",position:"relative"},
       locked&&el("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,borderRadius:18,zIndex:2}}),
 
@@ -303,6 +314,7 @@ function App(){
       )
     ),
 
+    // Stats
     s("div",{marginTop:18,display:"flex",gap:10},
       ...[0,1].map(idx=>
         s("div",{key:idx,flex:1,background:"#fff",borderRadius:14,padding:"12px 14px",
@@ -344,13 +356,15 @@ function App(){
       )
     ),
 
+    // Buttons
     s("div",{textAlign:"center",marginTop:16,paddingBottom:20,display:"flex",flexDirection:"column",gap:8,alignItems:"center"},
       el("button",{onClick:()=>{
         if(locked)return;
         if(confirm("이번 달 근무표를 초기화할까요?")){
           const updated={...schedules};
           for(let d=1;d<=dim;d++){delete updated[mk(year,month,d,0)];delete updated[mk(year,month,d,1)]}
-          setSchedules(updated);saveSchedules(updated);
+          setSchedules(updated);
+          saveSchedules(updated);
         }
       },style:{padding:"8px 20px",borderRadius:10,border:"none",background:"#EEEEF3",
         color:locked?"#CCCCD5":"#A0A4B0",fontSize:13,fontWeight:600,cursor:locked?"default":"pointer"}},
