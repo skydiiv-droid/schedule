@@ -1,32 +1,32 @@
 // 우리 근무표 위젯
 // Scriptable 앱에서 사용하세요
 
-const DB_URL = “https://our-schedule-ee491-default-rtdb.asia-southeast1.firebasedatabase.app”;
+const DB_URL = "https://our-schedule-ee491-default-rtdb.asia-southeast1.firebasedatabase.app”;
 
 const SHIFTS = {
-day: { label: “D”, name: “데이”, color: new Color(”#7EC8E3”) },
-evening: { label: “E”, name: “이브닝”, color: new Color(”#8FD5A6”) },
-night: { label: “N”, name: “나이트”, color: new Color(”#F5D76E”) },
-off: { label: “OFF”, name: “오프”, color: new Color(”#D4A0D0”) },
+day: { label: "D”, name: "데이”, color: new Color(”#7EC8E3”) },
+evening: { label: "E”, name: "이브닝”, color: new Color(”#8FD5A6”) },
+night: { label: "N”, name: "나이트”, color: new Color(”#F5D76E”) },
+off: { label: "OFF”, name: "오프”, color: new Color(”#D4A0D0”) },
 };
 
-const WEEKDAYS = [“일”,“월”,“화”,“수”,“목”,“금”,“토”];
+const WEEKDAYS = ["일”,"월”,"화”,"수”,"목”,"금”,"토”];
 
 // Firebase에서 데이터 가져오기
 async function fetchData() {
 try {
-const sReq = new Request(DB_URL + “/schedules.json”);
-const nReq = new Request(DB_URL + “/names.json”);
+const sReq = new Request(DB_URL + "/schedules.json”);
+const nReq = new Request(DB_URL + "/names.json”);
 const [schedules, names] = await Promise.all([sReq.loadJSON(), nReq.loadJSON()]);
-return { schedules: schedules || {}, names: names || [“정우”, “여자친구”] };
+return { schedules: schedules || {}, names: names || ["정우”, "여자친구”] };
 } catch {
-return { schedules: {}, names: [“정우”, “여자친구”] };
+return { schedules: {}, names: ["정우”, "여자친구”] };
 }
 }
 
 function getShift(schedules, y, m, d, p) {
-const key = y + “-” + m + “-” + d + “-” + p;
-return schedules[key] || “none”;
+const key = y + "-” + m + "-” + d + "-” + p;
+return schedules[key] || "none”;
 }
 
 // 위젯 만들기
@@ -41,11 +41,11 @@ w.setPadding(12, 14, 12, 14);
 // 헤더
 const header = w.addStack();
 header.centerAlignContent();
-const title = header.addText(“👩‍⚕️👨‍⚕️ 우리 근무표”);
+const title = header.addText("👩‍⚕️👨‍⚕️ 우리 근무표”);
 title.font = Font.boldSystemFont(13);
 title.textColor = new Color(”#3A3A4A”);
 header.addSpacer();
-const dateText = header.addText((today.getMonth()+1) + “월 “ + today.getDate() + “일”);
+const dateText = header.addText((today.getMonth()+1) + "월 " + today.getDate() + "일”);
 dateText.font = Font.mediumSystemFont(11);
 dateText.textColor = new Color(”#A0A4B0”);
 
@@ -135,16 +135,16 @@ w.addSpacer(4);
 // 범례
 const legend = w.addStack();
 legend.centerAlignContent();
-const leg0 = legend.addText(“◀ “ + names[0]);
+const leg0 = legend.addText("◀ " + names[0]);
 leg0.font = Font.mediumSystemFont(9);
 leg0.textColor = new Color(”#5B9BD5”);
 legend.addSpacer();
-const leg1 = legend.addText(names[1] + “ ▶”);
+const leg1 = legend.addText(names[1] + " ▶”);
 leg1.font = Font.mediumSystemFont(9);
 leg1.textColor = new Color(”#C07ABC”);
 
 // 웹앱 열기
-w.url = “https://skydiiv-droid.github.io/schedule/”;
+w.url = "https://skydiiv-droid.github.io/schedule/”;
 
 return w;
 }
