@@ -389,15 +389,7 @@ function App(){
     ),
 
     s("div",{background:"#fff",borderRadius:18,padding:12,boxShadow:"0 4px 20px rgba(0,0,0,0.05)",position:"relative"},
-      locked&&el("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,borderRadius:18,zIndex:2},
-        onTouchStart:e=>{
-          const touch=e.touches[0];
-          const el2=document.elementFromPoint(touch.clientX,touch.clientY);
-          const dayBtn=el2?.closest("[data-day]");
-          if(dayBtn){const d=parseInt(dayBtn.dataset.day);startLongPress(d)}
-        },
-        onTouchEnd:cancelLongPress,onTouchMove:cancelLongPress
-      }),
+
 
       s("div",{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:6},
         ...WEEKDAYS.map((d,i)=>
