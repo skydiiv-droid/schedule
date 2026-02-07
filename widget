@@ -1,0 +1,160 @@
+// 우리 근무표 위젯
+// Scriptable 앱에서 사용하세요
+
+const DB_URL = “https://our-schedule-ee491-default-rtdb.asia-southeast1.firebasedatabase.app”;
+
+const SHIFTS = {
+day: { label: “D”, name: “데이”, color: new Color(”#7EC8E3”) },
+evening: { label: “E”, name: “이브닝”, color: new Color(”#8FD5A6”) },
+night: { label: “N”, name: “나이트”, color: new Color(”#F5D76E”) },
+off: { label: “OFF”, name: “오프”, color: new Color(”#D4A0D0”) },
+};
+
+const WEEKDAYS = [“일”,“월”,“화”,“수”,“목”,“금”,“토”];
+
+// Firebase에서 데이터 가져오기
+async function fetchData() {
+try {
+const sReq = new Request(DB_URL + “/schedules.json”);
+const nReq = new Request(DB_URL + “/names.json”);
+const [schedules, names] = await Promise.all([sReq.loadJSON(), nReq.loadJSON()]);
+return { schedules: schedules || {}, names: names || [“정우”, “여자친구”] };
+} catch {
+return { schedules: {}, names: [“정우”, “여자친구”] };
+}
+}
+
+function getShift(schedules, y, m, d, p) {
+const key = y + “-” + m + “-” + d + “-” + p;
+return schedules[key] || “none”;
+}
+
+// 위젯 만들기
+async function createWidget() {
+const { schedules, names } = await fetchData();
+const today = new Date();
+
+const w = new ListWidget();
+w.backgroundColor = new Color(”#F7FBFF”);
+w.setPadding(12, 14, 12, 14);
+
+// 헤더
+const header = w.addStack();
+header.centerAlignContent();
+const title = header.addText(“👩‍⚕️👨‍⚕️ 우리 근무표”);
+title.font = Font.boldSystemFont(13);
+title.textColor = new Color(”#3A3A4A”);
+header.addSpacer();
+const dateText = header.addText((today.getMonth()+1) + “월 “ + today.getDate() + “일”);
+dateText.font = Font.mediumSystemFont(11);
+dateText.textColor = new Color(”#A0A4B0”);
+
+w.addSpacer(8);
+
+// 7일치 표시
+for (let i = 0; i < 7; i++) {
+const d = new Date(today);
+d.setDate(d.getDate() + i);
+const y = d.getFullYear();
+const m = d.getMonth();
+const day = d.getDate();
+const dow = d.getDay();
+
+```
+const s0 = getShift(schedules, y, m, day, 0);
+const s1 = getShift(schedules, y, m, day, 1);
+
+const row = w.addStack();
+row.centerAlignContent();
+row.spacing = 6;
+
+if (i === 0) {
+  row.backgroundColor = new Color("#EEEEF3", 0.5);
+  row.cornerRadius = 6;
+  row.setPadding(3, 6, 3, 6);
+} else {
+  row.setPadding(2, 6, 2, 6);
+}
+
+// 요일 + 날짜
+const dayLabel = row.addText(WEEKDAYS[dow] + " " + day + "일");
+dayLabel.font = i === 0 ? Font.boldSystemFont(11) : Font.systemFont(11);
+dayLabel.textColor = dow === 0 ? new Color("#E88B8B") : dow === 6 ? new Color("#7EB3E0") : new Color("#3A3A4A");
+dayLabel.lineLimit = 1;
+
+row.addSpacer();
+
+// 사람1 근무
+if (s0 !== "none") {
+  const badge0 = row.addStack();
+  badge0.backgroundColor = SHIFTS[s0].color;
+  badge0.cornerRadius = 4;
+  badge0.setPadding(1, 5, 1, 5);
+  const t0 = badge0.addText(SHIFTS[s0].label);
+  t0.font = Font.boldSystemFont(9);
+  t0.textColor = Color.white();
+} else {
+  const empty0 = row.addText("  —  ");
+  empty0.font = Font.systemFont(9);
+  empty0.textColor = new Color("#CCCCCC");
+}
+
+row.addSpacer(2);
+
+// 사람2 근무
+if (s1 !== "none") {
+  const badge1 = row.addStack();
+  badge1.backgroundColor = SHIFTS[s1].color;
+  badge1.cornerRadius = 4;
+  badge1.setPadding(1, 5, 1, 5);
+  const t1 = badge1.addText(SHIFTS[s1].label);
+  t1.font = Font.boldSystemFont(9);
+  t1.textColor = Color.white();
+} else {
+  const empty1 = row.addText("  —  ");
+  empty1.font = Font.systemFont(9);
+  empty1.textColor = new Color("#CCCCCC");
+}
+
+// 같이 쉬는 날 / 동시 출근
+if (s0 === "off" && s1 === "off") {
+  const heart = row.addText(" 💕");
+  heart.font = Font.systemFont(9);
+} else if (s0 !== "none" && s1 !== "none" && s0 === s1) {
+  const hand = row.addText(" 🤝");
+  hand.font = Font.systemFont(9);
+}
+
+if (i < 6) w.addSpacer(2);
+```
+
+}
+
+w.addSpacer(4);
+
+// 범례
+const legend = w.addStack();
+legend.centerAlignContent();
+const leg0 = legend.addText(“◀ “ + names[0]);
+leg0.font = Font.mediumSystemFont(9);
+leg0.textColor = new Color(”#5B9BD5”);
+legend.addSpacer();
+const leg1 = legend.addText(names[1] + “ ▶”);
+leg1.font = Font.mediumSystemFont(9);
+leg1.textColor = new Color(”#C07ABC”);
+
+// 웹앱 열기
+w.url = “https://skydiiv-droid.github.io/schedule/”;
+
+return w;
+}
+
+const widget = await createWidget();
+
+if (config.runsInWidget) {
+Script.setWidget(widget);
+} else {
+await widget.presentMedium();
+}
+
+Script.complete();
