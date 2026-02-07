@@ -21,18 +21,20 @@
   }
   button{font-family:inherit;-webkit-tap-highlight-color:transparent}
   @keyframes syncPulse{0%{opacity:1}50%{opacity:0.4}100%{opacity:1}}
+  @keyframes modalIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)}}
+  @keyframes overlayIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script>
 
-// Firebase init
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyBoWEww6yUb9bjSTy5oyNPTFTuHT07ppTQ",
   authDomain: "our-schedule-ee491.firebaseapp.com",
@@ -42,97 +44,154 @@ const firebaseConfig = {
   messagingSenderId: "397619973905",
   appId: "1:397619973905:web:ef54d6ff04d16e6ac0c6b0"
 };
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const schedulesRef = db.ref("schedules");
-const namesRef = db.ref("names");
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const schedulesRef = ref(db, "schedules");
+const namesRef = ref(db, "names");
+const memosRef = ref(db, "memos");
 
 const el = React.createElement;
 const {useState,useCallback,useEffect,useRef} = React;
 
 const SHIFTS = {
-  none:{label:"—",color:"transparent"},
-  day:{label:"D",fullLabel:"데이",color:"#7EC8E3",lightColor:"#E8F4FA"},
-  evening:{label:"E",fullLabel:"이브닝",color:"#8FD5A6",lightColor:"#EAFAF0"},
-  night:{label:"N",fullLabel:"나이트",color:"#F5D76E",lightColor:"#FDF8E8"},
-  off:{label:"OFF",fullLabel:"오프",color:"#D4A0D0",lightColor:"#F5EAF4"},
+  none:{label:"\u2014",color:"transparent"},
+  day:{label:"D",fullLabel:"\ub370\uc774",color:"#7EC8E3",lightColor:"#E8F4FA"},
+  evening:{label:"E",fullLabel:"\uc774\ube0c\ub2dd",color:"#8FD5A6",lightColor:"#EAFAF0"},
+  night:{label:"N",fullLabel:"\ub098\uc774\ud2b8",color:"#F5D76E",lightColor:"#FDF8E8"},
+  off:{label:"OFF",fullLabel:"\uc624\ud504",color:"#D4A0D0",lightColor:"#F5EAF4"},
 };
 const SHIFT_ORDER=["none","day","evening","night","off"];
-const WEEKDAYS=["일","월","화","수","목","금","토"];
+const WEEKDAYS=["\uc77c","\uc6d4","\ud654","\uc218","\ubaa9","\uae08","\ud1a0"];
+
+const MEMO_ICONS=["📌","🎉","🍽","💊","✈️","🏥","📅","❤️","⭐","🎂","🏃","📝"];
 
 function getDaysInMonth(y,m){return new Date(y,m+1,0).getDate()}
 function getFirstDay(y,m){return new Date(y,m,1).getDay()}
 function mk(y,m,d,p){return y+"-"+m+"-"+d+"-"+p}
+function memoKey(y,m,d){return y+"-"+m+"-"+d}
 
 function App(){
   const today=new Date();
   const [year,setYear]=useState(today.getFullYear());
   const [month,setMonth]=useState(today.getMonth());
   const [schedules,setSchedules]=useState({});
+  const [memos,setMemos]=useState({});
   const [activePerson,setActivePerson]=useState(0);
-  const [names,setNames]=useState(["정우","여자친구"]);
+  const [names,setNames]=useState(["\uc815\uc6b0","\uc5ec\uc790\uce5c\uad6c"]);
   const [editingName,setEditingName]=useState(null);
   const [tempName,setTempName]=useState("");
   const [locked,setLocked]=useState(true);
   const [loaded,setLoaded]=useState(false);
   const [syncStatus,setSyncStatus]=useState(null);
   const [online,setOnline]=useState(navigator.onLine);
+  const [viewOrder,setViewOrder]=useState(0);
+  const [memoModal,setMemoModal]=useState(null);
+  const [memoText,setMemoText]=useState("");
+  const [memoIcon,setMemoIcon]=useState("📌");
+  const longPressTimer=useRef(null);
+  const longPressTriggered=useRef(false);
 
   const pc=[
     {main:"#5B9BD5",soft:"#EDF4FC",ring:"#C4DBEF"},
     {main:"#C07ABC",soft:"#F8EFF7",ring:"#E4C8E1"},
   ];
 
-  // Listen for online/offline
   useEffect(()=>{
-    const on=()=>setOnline(true);
-    const off=()=>setOnline(false);
-    window.addEventListener("online",on);
-    window.addEventListener("offline",off);
-    return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off)};
+    const on2=()=>setOnline(true);
+    const off2=()=>setOnline(false);
+    window.addEventListener("online",on2);
+    window.addEventListener("offline",off2);
+    return()=>{window.removeEventListener("online",on2);window.removeEventListener("offline",off2)};
   },[]);
 
-  // Firebase real-time listeners
   useEffect(()=>{
-    schedulesRef.on("value", snap=>{
+    onValue(schedulesRef, snap=>{
       const data=snap.val();
-      if(data) setSchedules(data);
-      else setSchedules({});
+      if(data) setSchedules(data); else setSchedules({});
       setLoaded(true);
     });
-    namesRef.on("value", snap=>{
+    onValue(namesRef, snap=>{
       const data=snap.val();
       if(data) setNames(data);
     });
-    return()=>{schedulesRef.off();namesRef.off()};
+    onValue(memosRef, snap=>{
+      const data=snap.val();
+      if(data) setMemos(data); else setMemos({});
+    });
+    return()=>{off(schedulesRef);off(namesRef);off(memosRef)};
   },[]);
 
   const flash=(type)=>{setSyncStatus(type);setTimeout(()=>setSyncStatus(null),1500)};
 
   const saveSchedules=(updated)=>{
-    schedulesRef.set(updated).then(()=>flash("saved")).catch(()=>flash("error"));
+    set(schedulesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
   };
   const saveNames=(updated)=>{
-    namesRef.set(updated).then(()=>flash("saved")).catch(()=>flash("error"));
+    set(namesRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
+  };
+  const saveMemos=(updated)=>{
+    set(memosRef,updated).then(()=>flash("saved")).catch(()=>flash("error"));
   };
 
   const prevMonth=()=>{if(month===0){setYear(y=>y-1);setMonth(11)}else setMonth(m=>m-1)};
   const nextMonth=()=>{if(month===11){setYear(y=>y+1);setMonth(0)}else setMonth(m=>m+1)};
 
+  const top=viewOrder, bot=1-viewOrder;
+
   const cycle=useCallback((day)=>{
-    if(locked)return;
+    if(locked||longPressTriggered.current)return;
     const key=mk(year,month,day,activePerson);
     setSchedules(prev=>{
       const cur=prev[key]||"none";
       const next=SHIFT_ORDER[(SHIFT_ORDER.indexOf(cur)+1)%SHIFT_ORDER.length];
-      const updated={...prev,[key]:next};
-      if(next==="none"){delete updated[key]}
+      const updated={...prev};
+      if(next==="none"){delete updated[key]}else{updated[key]=next}
       saveSchedules(updated);
       return updated;
     });
   },[year,month,activePerson,locked]);
 
+  const startLongPress=(day)=>{
+    longPressTriggered.current=false;
+    longPressTimer.current=setTimeout(()=>{
+      longPressTriggered.current=true;
+      const key=memoKey(year,month,day);
+      const existing=memos[key];
+      if(existing){
+        setMemoModal({day,mode:"view",key});
+        setMemoText(existing.text||"");
+        setMemoIcon(existing.icon||"📌");
+      } else {
+        setMemoModal({day,mode:"edit",key});
+        setMemoText("");
+        setMemoIcon("📌");
+      }
+    },500);
+  };
+  const cancelLongPress=()=>{
+    if(longPressTimer.current){clearTimeout(longPressTimer.current);longPressTimer.current=null}
+  };
+
+  const saveMemo=()=>{
+    if(!memoModal)return;
+    const key=memoModal.key;
+    if(memoText.trim()){
+      const updated={...memos,[key]:{text:memoText.trim(),icon:memoIcon}};
+      setMemos(updated);saveMemos(updated);
+    }
+    setMemoModal(null);
+  };
+  const deleteMemo=()=>{
+    if(!memoModal)return;
+    const key=memoModal.key;
+    const updated={...memos};delete updated[key];
+    setMemos(updated);saveMemos(updated);
+    setMemoModal(null);
+  };
+
   const gs=(d,p)=>schedules[mk(year,month,d,p)]||"none";
+  const gm=(d)=>memos[memoKey(year,month,d)]||null;
   const dim=getDaysInMonth(year,month);
   const fd=getFirstDay(year,month);
   const isToday=d=>year===today.getFullYear()&&month===today.getMonth()&&d===today.getDate();
@@ -143,15 +202,14 @@ function App(){
   const saveN=()=>{
     if(tempName.trim()){
       const updated=names.map((n,i)=>i===editingName?tempName.trim():n);
-      setNames(updated);
-      saveNames(updated);
+      setNames(updated);saveNames(updated);
     }
     setEditingName(null);
   };
 
   const stats=[0,1].map(p=>{
     const c={day:0,evening:0,night:0,off:0};
-    for(let d=1;d<=dim;d++){const s=gs(d,p);if(s!=="none")c[s]++}
+    for(let d=1;d<=dim;d++){const sv=gs(d,p);if(sv!=="none")c[sv]++}
     return c;
   });
 
@@ -165,49 +223,116 @@ function App(){
   const s=(tag,style,...ch)=>el(tag,{style},...ch);
 
   if(!loaded){
-    return s("div",{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
-      flexDirection:"column",gap:12},
-      s("div",{fontSize:32},"👩‍⚕️👨‍⚕️"),
-      s("div",{fontSize:15,fontWeight:600,color:"#A0A4B0"},"근무표 불러오는 중...")
+    return s("div",{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12},
+      s("div",{fontSize:32},"\ud83d\udc69\u200d\u2695\ufe0f\ud83d\udc68\u200d\u2695\ufe0f"),
+      s("div",{fontSize:15,fontWeight:600,color:"#A0A4B0"},"\uadfc\ubb34\ud45c \ubd88\ub7ec\uc624\ub294 \uc911...")
     );
   }
 
+  const memoModalEl = memoModal ? el("div",{onClick:()=>setMemoModal(null),style:{
+    position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.4)",
+    display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,
+    padding:20,animation:"overlayIn 0.2s ease"}},
+    el("div",{onClick:e=>e.stopPropagation(),style:{
+      background:"#fff",borderRadius:20,padding:24,width:"100%",maxWidth:340,
+      boxShadow:"0 20px 60px rgba(0,0,0,0.2)",animation:"modalIn 0.25s ease"}},
+
+      s("div",{textAlign:"center",marginBottom:16},
+        s("span",{fontSize:15,fontWeight:800,color:"#3A3A4A"},
+          (month+1)+"\uc6d4 "+memoModal.day+"\uc77c \uba54\ubaa8")),
+
+      memoModal.mode==="view"?el("div",null,
+        s("div",{textAlign:"center",marginBottom:12},
+          s("span",{fontSize:28},gm(memoModal.day)?.icon||"📌")),
+        s("div",{background:"#F5F6FA",borderRadius:12,padding:"14px 16px",
+          fontSize:14,color:"#3A3A4A",lineHeight:"1.6",marginBottom:16,
+          wordBreak:"break-word"},gm(memoModal.day)?.text||""),
+        s("div",{display:"flex",gap:8},
+          el("button",{onClick:()=>setMemoModal({...memoModal,mode:"edit"}),style:{
+            flex:1,padding:"10px",borderRadius:12,border:"none",
+            background:"#EDF4FC",color:"#5B9BD5",fontWeight:700,fontSize:14,cursor:"pointer"}},
+            "\u2702\ufe0f \uc218\uc815"),
+          el("button",{onClick:deleteMemo,style:{
+            flex:1,padding:"10px",borderRadius:12,border:"none",
+            background:"#FDE8E8",color:"#E07070",fontWeight:700,fontSize:14,cursor:"pointer"}},
+            "\ud83d\uddd1 \uc0ad\uc81c")
+        )
+      ):el("div",null,
+        s("div",{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginBottom:14},
+          ...MEMO_ICONS.map(ic=>
+            el("button",{key:ic,onClick:()=>setMemoIcon(ic),style:{
+              width:36,height:36,borderRadius:10,border:memoIcon===ic?"2.5px solid #5B9BD5":"2px solid #EEEEF3",
+              background:memoIcon===ic?"#EDF4FC":"#fff",fontSize:18,cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center"}},ic)
+          )
+        ),
+        el("textarea",{value:memoText,onChange:e=>setMemoText(e.target.value),
+          placeholder:"\uba54\ubaa8\ub97c \uc785\ub825\ud558\uc138\uc694",
+          autoFocus:true,
+          style:{width:"100%",height:80,borderRadius:12,border:"2px solid #EEEEF3",
+            padding:"12px 14px",fontSize:14,fontFamily:"inherit",resize:"none",
+            outline:"none",color:"#3A3A4A",lineHeight:"1.5"}
+        }),
+        s("div",{display:"flex",gap:8,marginTop:14},
+          el("button",{onClick:()=>setMemoModal(null),style:{
+            flex:1,padding:"10px",borderRadius:12,border:"none",
+            background:"#EEEEF3",color:"#A0A4B0",fontWeight:700,fontSize:14,cursor:"pointer"}},
+            "\ucde8\uc18c"),
+          el("button",{onClick:saveMemo,style:{
+            flex:1,padding:"10px",borderRadius:12,border:"none",
+            background:memoText.trim()?"linear-gradient(135deg,#5B9BD5,#7EC8E3)":"#EEEEF3",
+            color:memoText.trim()?"#fff":"#CCCCCC",fontWeight:700,fontSize:14,cursor:"pointer"}},
+            "\uc800\uc7a5")
+        )
+      )
+    )
+  ):null;
+
   return el("div",null,
-    // Header
+    memoModalEl,
+
     s("div",{textAlign:"center",marginBottom:24},
-      s("h1",{fontSize:22,fontWeight:800,color:"#3A3A4A",letterSpacing:"-0.5px"},"👩‍⚕️ 우리 근무표 👨‍⚕️"),
-      s("p",{fontSize:13,color:"#A0A4B0",marginTop:4},"날짜를 눌러 근무를 입력하세요"),
-      // Sync status
+      s("h1",{fontSize:22,fontWeight:800,color:"#3A3A4A",letterSpacing:"-0.5px"},
+        "\ud83d\udc69\u200d\u2695\ufe0f \uc6b0\ub9ac \uadfc\ubb34\ud45c \ud83d\udc68\u200d\u2695\ufe0f"),
+      s("p",{fontSize:13,color:"#A0A4B0",marginTop:4},
+        "\ud0ed: \uadfc\ubb34 \uc785\ub825 | \uafc8 \ub204\ub974\uae30: \uba54\ubaa8"),
       s("div",{height:20,marginTop:4,display:"flex",alignItems:"center",justifyContent:"center",gap:6},
-        // Online indicator
         s("span",{width:6,height:6,borderRadius:3,display:"inline-block",
           background:online?"#4AAF6E":"#E07070",
           animation:!online?"syncPulse 1.5s infinite":"none"}),
         s("span",{fontSize:11,fontWeight:600,
           color:syncStatus==="saved"?"#4AAF6E":syncStatus==="error"?"#E07070":"#BCC0CC"},
-          syncStatus==="saved"?"✓ 동기화 완료":syncStatus==="error"?"동기화 실패":online?"실시간 연동 중":"오프라인"
+          syncStatus==="saved"?"✓ \ub3d9\uae30\ud654 \uc644\ub8cc":syncStatus==="error"?
+          "\ub3d9\uae30\ud654 \uc2e4\ud328":online?"\uc2e4\uc2dc\uac04 \uc5f0\ub3d9 \uc911":"\uc624\ud504\ub77c\uc778"
         )
       )
     ),
 
-    // Lock
-    s("div",{display:"flex",justifyContent:"center",marginBottom:16},
+    s("div",{display:"flex",justifyContent:"center",gap:10,marginBottom:16},
       el("button",{onClick:()=>setLocked(l=>!l),style:{
-        display:"flex",alignItems:"center",gap:8,padding:"10px 24px",borderRadius:30,border:"none",
+        display:"flex",alignItems:"center",gap:8,padding:"10px 20px",borderRadius:30,border:"none",
         background:locked?"linear-gradient(135deg,#F0F0F5,#E8E8EE)":"linear-gradient(135deg,#E3F5EA,#D5F0DF)",
-        color:locked?"#8A8A9A":"#4AAF6E",fontWeight:700,fontSize:14,cursor:"pointer",
+        color:locked?"#8A8A9A":"#4AAF6E",fontWeight:700,fontSize:13,cursor:"pointer",
         boxShadow:locked?"0 2px 8px rgba(0,0,0,0.06)":"0 2px 12px rgba(74,175,110,0.2)",
         transition:"all 0.25s ease",
       }},
-        s("span",{fontSize:18},locked?"🔒":"🔓"),
-        locked?"잠금 중 — 눌러서 편집":"편집 중 — 눌러서 잠금"
+        s("span",{fontSize:16},locked?"🔒":"🔓"),
+        locked?"\uc7a0\uae08":"\ud3b8\uc9d1 \uc911"
+      ),
+      el("button",{onClick:()=>setViewOrder(v=>1-v),style:{
+        display:"flex",alignItems:"center",gap:6,padding:"10px 20px",borderRadius:30,border:"none",
+        background:"linear-gradient(135deg,#F0F0F5,#E8E8EE)",
+        color:"#8A8A9A",fontWeight:700,fontSize:13,cursor:"pointer",
+        boxShadow:"0 2px 8px rgba(0,0,0,0.06)",transition:"all 0.25s ease",
+      }},
+        s("span",{fontSize:16},"🔄"),
+        names[top]+" \uc6b0\uc120"
       )
     ),
 
-    // Person selector
     s("div",{display:"flex",gap:10,marginBottom:16,justifyContent:"center",
       opacity:locked?0.5:1,pointerEvents:locked?"none":"auto",transition:"opacity 0.25s ease"},
-      ...[0,1].map(idx=>
+      ...[top,bot].map((idx,vi)=>
         el("button",{key:idx,onClick:()=>setActivePerson(idx),
           onDoubleClick:()=>startEdit(idx),
           style:{
@@ -225,15 +350,14 @@ function App(){
                 onClick:ev=>ev.stopPropagation(),
                 style:{border:"none",background:"transparent",color:pc[idx].main,
                   fontWeight:700,fontSize:14,textAlign:"center",width:"100%",outline:"none"}})
-            :el("span",null,(idx===0?"👨‍⚕️ ":"👩‍⚕️ ")+names[idx])
+            :el("span",null,(idx===0?"\ud83d\udc68\u200d\u2695\ufe0f ":"\ud83d\udc69\u200d\u2695\ufe0f ")+names[idx])
         )
       )
     ),
 
     !locked&&s("p",{textAlign:"center",fontSize:11,color:"#BCC0CC",marginTop:-8,marginBottom:14},
-      "이름을 더블클릭하면 수정할 수 있어요"),
+      "\uc774\ub984\uc744 \ub354\ube14\ud074\ub9ad\ud558\uba74 \uc218\uc815\ud560 \uc218 \uc788\uc5b4\uc694"),
 
-    // Legend
     s("div",{display:"flex",gap:6,justifyContent:"center",marginBottom:10,flexWrap:"wrap"},
       ...SHIFT_ORDER.filter(x=>x!=="none").map(sk=>
         s("div",{key:sk,display:"flex",alignItems:"center",gap:5,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
@@ -247,25 +371,33 @@ function App(){
     ),
     s("div",{display:"flex",gap:8,justifyContent:"center",marginBottom:18,flexWrap:"wrap"},
       s("div",{display:"flex",alignItems:"center",gap:4,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
-        s("span",{fontSize:12},"💕")," 같이 오프"),
+        s("span",{fontSize:12},"💕")," \uac19\uc774 \uc624\ud504"),
       s("div",{display:"flex",alignItems:"center",gap:4,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
-        s("span",{fontSize:12},"🤝")," 동시 출근")
+        s("span",{fontSize:12},"🤝")," \ub3d9\uc2dc \ucd9c\uadfc"),
+      s("div",{display:"flex",alignItems:"center",gap:4,background:"#fff",borderRadius:8,padding:"4px 10px",fontSize:12,color:"#5A5A6A"},
+        s("span",{fontSize:12},"📌")," \uba54\ubaa8")
     ),
 
-    // Month nav
     s("div",{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,padding:"0 4px"},
       el("button",{onClick:prevMonth,style:{width:36,height:36,borderRadius:10,border:"none",background:"#fff",
         fontSize:16,cursor:"pointer",color:"#5A5A6A",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
-        display:"flex",alignItems:"center",justifyContent:"center"}},"←"),
-      s("h2",{fontSize:18,fontWeight:800,color:"#3A3A4A"},year+"년 "+(month+1)+"월"),
+        display:"flex",alignItems:"center",justifyContent:"center"}},"\u2190"),
+      s("h2",{fontSize:18,fontWeight:800,color:"#3A3A4A"},year+"\ub144 "+(month+1)+"\uc6d4"),
       el("button",{onClick:nextMonth,style:{width:36,height:36,borderRadius:10,border:"none",background:"#fff",
         fontSize:16,cursor:"pointer",color:"#5A5A6A",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
-        display:"flex",alignItems:"center",justifyContent:"center"}},"→")
+        display:"flex",alignItems:"center",justifyContent:"center"}},"\u2192")
     ),
 
-    // Calendar
     s("div",{background:"#fff",borderRadius:18,padding:12,boxShadow:"0 4px 20px rgba(0,0,0,0.05)",position:"relative"},
-      locked&&el("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,borderRadius:18,zIndex:2}}),
+      locked&&el("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,borderRadius:18,zIndex:2},
+        onTouchStart:e=>{
+          const touch=e.touches[0];
+          const el2=document.elementFromPoint(touch.clientX,touch.clientY);
+          const dayBtn=el2?.closest("[data-day]");
+          if(dayBtn){const d=parseInt(dayBtn.dataset.day);startLongPress(d)}
+        },
+        onTouchEnd:cancelLongPress,onTouchMove:cancelLongPress
+      }),
 
       s("div",{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:6},
         ...WEEKDAYS.map((d,i)=>
@@ -277,13 +409,18 @@ function App(){
       s("div",{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3},
         ...Array.from({length:fd}).map((_,i)=>el("div",{key:"e"+i,style:{aspectRatio:"1/1.15"}})),
         ...Array.from({length:dim}).map((_,i)=>{
-          const day=i+1,bo=bothOff(day),ss=sameSh(day);
+          const day=i+1,bo=bothOff(day),ss=sameSh(day),memo=gm(day);
           const dow=(fd+i)%7,isSun=dow===0,isSat=dow===6;
           let bg="#FAFBFE";
           if(bo)bg="linear-gradient(135deg,#FCF0F4,#F8E8EF)";
           else if(ss)bg="linear-gradient(135deg,"+SHIFTS[ss].lightColor+",#FAFBFE)";
 
-          return el("button",{key:day,onClick:()=>cycle(day),style:{
+          return el("button",{key:day,"data-day":day,
+            onClick:()=>cycle(day),
+            onTouchStart:()=>startLongPress(day),
+            onTouchEnd:()=>{cancelLongPress();setTimeout(()=>{longPressTriggered.current=false},50)},
+            onTouchMove:cancelLongPress,
+            style:{
             aspectRatio:"1/1.15",borderRadius:10,
             border:isToday(day)?"2px solid #3A3A4A":"1.5px solid #EEEEF3",
             background:bg,cursor:locked?"default":"pointer",
@@ -291,11 +428,14 @@ function App(){
             justifyContent:"flex-start",gap:1,position:"relative",
             transition:"transform 0.1s ease",
           }},
-            s("span",{fontSize:11,fontWeight:isToday(day)?800:600,
-              color:isSun?"#E88B8B":isSat?"#7EB3E0":"#3A3A4A",
-              lineHeight:1,marginTop:3},""+day),
+            s("div",{display:"flex",alignItems:"center",gap:1,marginTop:2},
+              memo&&s("span",{fontSize:7,lineHeight:1},memo.icon),
+              s("span",{fontSize:memo?10:11,fontWeight:isToday(day)?800:600,
+                color:isSun?"#E88B8B":isSat?"#7EB3E0":"#3A3A4A",
+                lineHeight:1},""+day)
+            ),
             s("div",{display:"flex",flexDirection:"column",gap:1,marginTop:1},
-              ...[0,1].map(p=>{
+              ...[top,bot].map(p=>{
                 const sh=gs(day,p);
                 if(sh==="none")return el("div",{key:p,style:{width:28,height:12,borderRadius:4,
                   background:(!locked&&activePerson===p)?pc[p].ring+"55":"transparent"}});
@@ -314,13 +454,12 @@ function App(){
       )
     ),
 
-    // Stats
     s("div",{marginTop:18,display:"flex",gap:10},
-      ...[0,1].map(idx=>
+      ...[top,bot].map(idx=>
         s("div",{key:idx,flex:1,background:"#fff",borderRadius:14,padding:"12px 14px",
           boxShadow:"0 2px 10px rgba(0,0,0,0.04)"},
           s("div",{fontSize:13,fontWeight:700,color:pc[idx].main,marginBottom:8},
-            (idx===0?"👨‍⚕️ ":"👩‍⚕️ ")+names[idx]),
+            (idx===0?"\ud83d\udc68\u200d\u2695\ufe0f ":"\ud83d\udc69\u200d\u2695\ufe0f ")+names[idx]),
           s("div",{display:"flex",flexWrap:"wrap",gap:6},
             ...["day","evening","night","off"].map(sk=>
               s("div",{key:sk,display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#5A5A6A"},
@@ -336,12 +475,13 @@ function App(){
     offDays.length>0&&s("div",{marginTop:10,background:"linear-gradient(135deg,#FCF0F4,#F8E8EF)",
       borderRadius:14,padding:"12px 16px",textAlign:"center"},
       s("span",{fontSize:13,fontWeight:700,color:"#C07ABC"},
-        "💕 같이 쉬는 날: "+offDays.map(d=>d+"일").join(", "))
+        "💕 \uac19\uc774 \uc26c\ub294 \ub0a0: "+offDays.map(d=>d+"\uc77c").join(", "))
     ),
 
     hasSame&&s("div",{marginTop:10,background:"linear-gradient(135deg,#EDF6FF,#E8F5ED)",
       borderRadius:14,padding:"12px 16px"},
-      s("div",{fontSize:13,fontWeight:700,color:"#5B9BD5",marginBottom:6,textAlign:"center"},"🤝 동시 출근"),
+      s("div",{fontSize:13,fontWeight:700,color:"#5B9BD5",marginBottom:6,textAlign:"center"},
+        "🤝 \ub3d9\uc2dc \ucd9c\uadfc"),
       s("div",{display:"flex",flexDirection:"column",gap:4},
         ...["day","evening","night"].map(sk=>{
           if(sameDays[sk].length===0)return null;
@@ -350,34 +490,33 @@ function App(){
               display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:8,fontWeight:800,color:"#fff",
               textShadow:sk==="night"?"0 0 2px rgba(0,0,0,0.25)":"none"},SHIFTS[sk].label),
-            s("span",{fontWeight:600},sameDays[sk].map(d=>d+"일").join(", "))
+            s("span",{fontWeight:600},sameDays[sk].map(d=>d+"\uc77c").join(", "))
           );
         })
       )
     ),
 
-    // Buttons
     s("div",{textAlign:"center",marginTop:16,paddingBottom:20,display:"flex",flexDirection:"column",gap:8,alignItems:"center"},
       el("button",{onClick:()=>{
         if(locked)return;
-        if(confirm("이번 달 근무표를 초기화할까요?")){
+        if(confirm("\uc774\ubc88 \ub2ec \uadfc\ubb34\ud45c\ub97c \ucd08\uae30\ud654\ud560\uae4c\uc694?")){
           const updated={...schedules};
           for(let d=1;d<=dim;d++){delete updated[mk(year,month,d,0)];delete updated[mk(year,month,d,1)]}
-          setSchedules(updated);
-          saveSchedules(updated);
+          setSchedules(updated);saveSchedules(updated);
         }
       },style:{padding:"8px 20px",borderRadius:10,border:"none",background:"#EEEEF3",
         color:locked?"#CCCCD5":"#A0A4B0",fontSize:13,fontWeight:600,cursor:locked?"default":"pointer"}},
-        "이번 달 초기화"),
+        "\uc774\ubc88 \ub2ec \ucd08\uae30\ud654"),
       el("button",{onClick:()=>{
         if(locked)return;
-        if(confirm("전체 데이터를 삭제할까요?")){
+        if(confirm("\uc804\uccb4 \ub370\uc774\ud130\ub97c \uc0ad\uc81c\ud560\uae4c\uc694?")){
           setSchedules({});saveSchedules({});
-          setNames(["정우","여자친구"]);saveNames(["정우","여자친구"]);
+          setNames(["\uc815\uc6b0","\uc5ec\uc790\uce5c\uad6c"]);saveNames(["\uc815\uc6b0","\uc5ec\uc790\uce5c\uad6c"]);
+          setMemos({});saveMemos({});
         }
       },style:{padding:"6px 16px",borderRadius:8,border:"none",background:"transparent",
         color:locked?"#DDDDE2":"#CCCCDD",fontSize:11,fontWeight:600,cursor:locked?"default":"pointer"}},
-        "전체 데이터 삭제")
+        "\uc804\uccb4 \ub370\uc774\ud130 \uc0ad\uc81c")
     )
   );
 }
