@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="동기 듀티">
+<meta name="apple-mobile-web-app-title" content="몬자야키">
 <meta name="theme-color" content="#F8F4ED">
-<title>동기 듀티</title>
+<title>몬자야키</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -24,12 +24,10 @@
   button{font-family:inherit;-webkit-tap-highlight-color:transparent;border:none;background:none;cursor:pointer;color:inherit;font-size:inherit}
   input,select,textarea{font-family:inherit;-webkit-appearance:none;outline:none;border:none;background:none;color:inherit}
   ::-webkit-scrollbar{display:none}
-
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes slideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes slideDown{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
-
   .anim-fade{animation:fadeIn 0.2s ease}
   .anim-up{animation:slideUp 0.28s cubic-bezier(0.2,0.85,0.25,1)}
   .anim-down{animation:slideDown 0.22s ease}
@@ -37,14 +35,11 @@
 </head>
 <body>
 <div id="app"></div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getDatabase, ref, set, get, update, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-
 // ───── Firebase ─────
 const firebaseConfig = {
   apiKey: "AIzaSyBoWEww6yUb9bjSTy5oyNPTFTuHT07ppTQ",
@@ -58,11 +53,9 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getDatabase(fbApp);
 const ROOT = "group_schedule_v1";
-
 // ───── 상수 ─────
 const el = React.createElement;
 const {useState, useEffect, useMemo, useRef, useCallback} = React;
-
 const WEEKDAYS = ["일","월","화","수","목","금","토"];
 const SHIFT = {
   D:{label:"D",full:"데이",color:"#7EC8E3",light:"#E8F4FA"},
@@ -71,17 +64,14 @@ const SHIFT = {
   O:{label:"O",full:"오프",color:"#D4A0D0",light:"#F5EAF4"},
 };
 const RESERVED_CODES = ["D","E","N","O"];
-
 const MEMBER_COLORS = [
   "#5B9BD5","#C07ABC","#E8746E","#F5A623","#6FB89B","#B89B6E","#D88F89",
   "#5A8DBA","#9B6FB5","#C685A8","#6B7FA5","#B47B5C","#7BA98F","#BD7E89"
 ];
-
 const MEMO_COLOR = "#FF5C5C";
 const MAX_MEMBERS = 14;
-
+const GRAY_COLOR = "#BEB5A8"; // B안: 시점(현재 보는 사람)만 색상, 나머지는 회색
 const dKey = (y,m,d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-
 // ───── 메인 앱 ─────
 function App(){
   const [view,setView] = useState("loading"); // loading | auth | main
@@ -94,14 +84,12 @@ function App(){
   const today = new Date();
   const [year,setYear] = useState(today.getFullYear());
   const [month,setMonth] = useState(today.getMonth());
-
   // 첫 진입: localStorage에서 me 복구
   useEffect(()=>{
     const savedId = localStorage.getItem("group_duty_me");
     if(savedId){ setMe(savedId); setPerspective(savedId); }
     setView(savedId ? "main" : "auth");
   },[]);
-
   // Firebase 리스너
   useEffect(()=>{
     const unsubM = onValue(ref(db,`${ROOT}/members`), s=>{
@@ -115,21 +103,18 @@ function App(){
     });
     return ()=>{ unsubM(); unsubS(); unsubMe(); };
   },[]);
-
   const handleLogin = useCallback((memberId)=>{
     localStorage.setItem("group_duty_me", memberId);
     setMe(memberId);
     setPerspective(memberId);
     setView("main");
   },[]);
-
   const handleLogout = useCallback(()=>{
     localStorage.removeItem("group_duty_me");
     setMe(null);
     setPerspective(null);
     setView("auth");
   },[]);
-
   if(view==="loading"){
     return el("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100dvh",color:"#A0A0A8"}},"...");
   }
@@ -146,14 +131,13 @@ function App(){
     onLogout:handleLogout
   });
 }
-
 // ───── 인증 화면 ─────
 function AuthScreen({mode,setMode,members,onLogin}){
   const memberCount = Object.keys(members).length;
   return el("div",{style:{minHeight:"100dvh",padding:"56px 24px 32px",display:"flex",flexDirection:"column"}},
     el("div",{style:{textAlign:"center",marginBottom:48}},
       el("div",{style:{fontSize:52,marginBottom:8}},"🩺"),
-      el("h1",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#2D2D3A"}},"동기 듀티"),
+      el("h1",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#2D2D3A"}},"몬자야키"),
       el("p",{style:{fontSize:13,color:"#9C8F7C",marginTop:6,letterSpacing:"-0.01em"}},`현재 ${memberCount}명 / 최대 ${MAX_MEMBERS}명`)
     ),
     el("div",{style:{display:"flex",gap:8,padding:4,background:"rgba(255,255,255,0.5)",borderRadius:14,marginBottom:24}},
@@ -176,13 +160,11 @@ function AuthScreen({mode,setMode,members,onLogin}){
       : el(SignupForm,{members,memberCount,onLogin})
   );
 }
-
 function LoginForm({members,onLogin}){
   const [selectedId,setSelectedId] = useState("");
   const [pw,setPw] = useState("");
   const [err,setErr] = useState("");
   const memberList = Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
-
   const handleSubmit = ()=>{
     if(!selectedId) return setErr("이름을 선택해");
     if(pw.length!==4) return setErr("비번 4자리");
@@ -190,7 +172,6 @@ function LoginForm({members,onLogin}){
     setErr("");
     onLogin(selectedId);
   };
-
   return el("div",{className:"anim-down",style:{display:"flex",flexDirection:"column",gap:14}},
     el("div",{style:{background:"rgba(255,255,255,0.6)",borderRadius:14,padding:"4px 6px"}},
       el("div",{style:{padding:"4px 12px 0",fontSize:11,color:"#9C8F7C",fontWeight:600}},"이름"),
@@ -230,7 +211,6 @@ function LoginForm({members,onLogin}){
     },"들어가기")
   );
 }
-
 function SignupForm({members,memberCount,onLogin}){
   const [name,setName] = useState("");
   const [bMonth,setBMonth] = useState("");
@@ -240,38 +220,35 @@ function SignupForm({members,memberCount,onLogin}){
   const [pw2,setPw2] = useState("");
   const [color,setColor] = useState(MEMBER_COLORS[0]);
   const [err,setErr] = useState("");
-
   const usedColors = new Set(Object.values(members).map(m=>m.color));
   const usedNames = new Set(Object.values(members).map(m=>m.name));
-
   const handleSubmit = async()=>{
     if(memberCount>=MAX_MEMBERS) return setErr(`최대 ${MAX_MEMBERS}명`);
-    if(!name.trim()) return setErr("이름");
-    if(usedNames.has(name.trim())) return setErr("이미 있는 이름");
+    const trimmedName = name.trim();
+    if(trimmedName.length !== 3 || !/^[가-힣]{3}$/.test(trimmedName)) return setErr("이름은 정확히 한글 3자만 가능합니다");
+    if(usedNames.has(trimmedName)) return setErr("이미 있는 이름");
     const m=parseInt(bMonth),d=parseInt(bDay);
     if(!(m>=1&&m<=12)||!(d>=1&&d<=31)) return setErr("생일 확인");
-    if(!phone.trim()) return setErr("전화번호");
+    if(!phone) return setErr("전화번호");
     if(pw.length!==4) return setErr("비번 4자리");
     if(pw!==pw2) return setErr("비번 확인 불일치");
     setErr("");
-
     const newRef = push(ref(db,`${ROOT}/members`));
     const id = newRef.key;
     await set(newRef,{
-      name:name.trim(),
+      name:trimmedName,
       birthMonth:m,birthDay:d,
-      phone:phone.trim(),
+      phone:phone, // 숫자만 저장
       password:pw,
       color,
       joinedAt:Date.now()
     });
     onLogin(id);
   };
-
   return el("div",{className:"anim-down",style:{display:"flex",flexDirection:"column",gap:12}},
     field("이름", el("input",{
-      type:"text",value:name,onChange:e=>setName(e.target.value.slice(0,8)),
-      placeholder:"한글 1~8자",maxLength:8,
+      type:"text",value:name,onChange:e=>setName(e.target.value.replace(/[^가-힣]/g,"").slice(0,3)),
+      placeholder:"한글 3자 (예: 홍길동)",maxLength:3,
       style:inputStyle()
     })),
     field("생일 (양력)", el("div",{style:{display:"flex",gap:8,alignItems:"center"}},
@@ -280,8 +257,8 @@ function SignupForm({members,memberCount,onLogin}){
       el("input",{type:"tel",inputMode:"numeric",value:bDay,onChange:e=>setBDay(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"일",style:{...inputStyle(),width:60,textAlign:"center"}})
     )),
     field("전화번호", el("input",{
-      type:"tel",value:phone,onChange:e=>setPhone(e.target.value.replace(/[^\d-]/g,"").slice(0,13)),
-      placeholder:"010-0000-0000",
+      type:"tel",value:phone,onChange:e=>setPhone(e.target.value.replace(/\D/g,"").slice(0,11)),
+      placeholder:"01012345678",
       style:inputStyle()
     })),
     field("비밀번호 4자리", el("div",{style:{display:"flex",gap:8}},
@@ -313,7 +290,6 @@ function SignupForm({members,memberCount,onLogin}){
     },"가입하기")
   );
 }
-
 const inputStyle = ()=>({
   width:"100%",fontSize:15,padding:"10px 12px",
   background:"#FFFFFF",borderRadius:10,
@@ -325,7 +301,6 @@ function field(label,child){
     child
   );
 }
-
 // ───── 메인 캘린더 ─────
 function CalendarScreen(props){
   const {me,members,schedules,memos,perspective,setPerspective,year,month,setYear,setMonth,onLogout} = props;
@@ -334,29 +309,24 @@ function CalendarScreen(props){
   const [showContacts,setShowContacts] = useState(false);
   const [showSettings,setShowSettings] = useState(false);
   const [modalDay,setModalDay] = useState(null); // {day, scrollToAll:bool}
-
   const meData = me ? members[me] : null;
   const pData = perspective ? members[perspective] : null;
-
   // 시점 멤버가 사라졌으면 본인으로
   useEffect(()=>{
     if(perspective && !members[perspective]) setPerspective(me);
   },[members,perspective,me,setPerspective]);
-
   // 시점 좌우 스와이프
   const orderedIds = useMemo(()=>{
     return Object.entries(members)
       .sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0))
       .map(([id])=>id);
   },[members]);
-
   const swipePerspective = (dir)=>{
     if(orderedIds.length===0) return;
     const idx = orderedIds.indexOf(perspective);
     const next = (idx + dir + orderedIds.length) % orderedIds.length;
     setPerspective(orderedIds[next]);
   };
-
   // 월 이동
   const moveMonth = (dir)=>{
     let y=year, m=month+dir;
@@ -364,7 +334,6 @@ function CalendarScreen(props){
     if(m>11){y++;m=0;}
     setYear(y); setMonth(m);
   };
-
   // 캘린더 셀 데이터
   const daysInMonth = new Date(year,month+1,0).getDate();
   const firstDow = new Date(year,month,1).getDay();
@@ -372,7 +341,6 @@ function CalendarScreen(props){
   for(let i=0;i<firstDow;i++) cells.push(null);
   for(let d=1;d<=daysInMonth;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
-
   // ───── 스와이프 핸들러 ─────
   const swipeRef = useRef({x:0,y:0,active:false});
   const onTouchStart = (e)=>{
@@ -389,9 +357,7 @@ function CalendarScreen(props){
     }
     swipeRef.current.active = false;
   };
-
   if(!perspective || !pData) return el("div",{style:{padding:40,textAlign:"center",color:"#9C8F7C"}},"로딩...");
-
   return el("div",{style:{minHeight:"100dvh",display:"flex",flexDirection:"column"}},
     // 헤더
     el(Header,{
@@ -402,7 +368,6 @@ function CalendarScreen(props){
       onGoHome:()=>setPerspective(me),
       onSettings:()=>setShowSettings(true)
     }),
-
     // 캘린더 본체 (스와이프 영역)
     el("div",{
       style:{flex:1,padding:"4px 10px 12px",touchAction:"pan-y"},
@@ -417,7 +382,6 @@ function CalendarScreen(props){
         onCellLongPress:(d)=>setModalDay({day:d,scrollToAll:true})
       })
     ),
-
     // 본인 시점일 때 입력 버튼
     perspective===me && el("div",{style:{padding:"4px 16px 8px"}},
       el("button",{onClick:()=>setShowInputDrawer(true),
@@ -430,13 +394,11 @@ function CalendarScreen(props){
         }
       },`📝 ${year}년 ${month+1}월 듀티 한 줄 입력`)
     ),
-
-    // 연락처 패널
+    // 연락처 패널 (perspective 전달 → B안 적용)
     el(ContactsPanel,{
       open:showContacts, onToggle:()=>setShowContacts(!showContacts),
-      members, me, onLogout
+      members, me, onLogout, perspective
     }),
-
     // 모달들
     showPicker && el(PersonPicker,{
       members, me, perspective,
@@ -461,7 +423,6 @@ function CalendarScreen(props){
     })
   );
 }
-
 // ───── 헤더 ─────
 function Header({meData,pData,members,perspective,me,year,month,onMoveMonth,onPickPerson,onGoHome,onSettings}){
   return el("div",{style:{padding:"14px 14px 8px"}},
@@ -503,7 +464,6 @@ function Header({meData,pData,members,perspective,me,year,month,onMoveMonth,onPi
     )
   );
 }
-
 function WeekdayRow(){
   return el("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",marginBottom:4}},
     WEEKDAYS.map((w,i)=>el("div",{key:w,
@@ -515,11 +475,9 @@ function WeekdayRow(){
     },w))
   );
 }
-
 // ───── 캘린더 그리드 ─────
 function CalendarGrid({cells,year,month,today,members,schedules,memos,perspective,me,onCellTap,onCellLongPress}){
   const longPressRef = useRef({timer:null,fired:false});
-
   const startPress = (day)=>{
     longPressRef.current.fired = false;
     longPressRef.current.timer = setTimeout(()=>{
@@ -543,7 +501,6 @@ function CalendarGrid({cells,year,month,today,members,schedules,memos,perspectiv
     }
     longPressRef.current.fired = true;
   };
-
   return el("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}},
     cells.map((d,idx)=>{
       if(d===null) return el("div",{key:`e${idx}`,style:{aspectRatio:"1/1.15"}});
@@ -558,17 +515,14 @@ function CalendarGrid({cells,year,month,today,members,schedules,memos,perspectiv
     })
   );
 }
-
 // ───── 한 셀 ─────
 function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,onPressStart,onPressEnd,onPressCancel}){
   const dateKey = dKey(year,month,day);
   const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===day;
-
   const pData = members[perspective];
   const myShift = schedules?.[perspective]?.[dateKey] || null;
   const sInfo = myShift && SHIFT[myShift] ? SHIFT[myShift] : null;
   const isCustom = myShift && !RESERVED_CODES.includes(myShift);
-
   // 통계 계산
   const counts = useMemo(()=>{
     const c = {D:0,E:0,N:0,O:0};
@@ -578,28 +532,21 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
     });
     return c;
   },[members,schedules,dateKey]);
-
   const sameCount = sInfo && (myShift!=="O") ? counts[myShift]-1 : 0;
-
   // 메모 존재 여부
   const hasMemo = memos[dateKey] && Object.keys(memos[dateKey]).length>0;
-
   // 생일
   const birthdays = useMemo(()=>{
     return Object.values(members).filter(m=>m.birthMonth===month+1 && m.birthDay===day);
   },[members,month,day]);
-
   // 셀 색상
   let bg = "rgba(255,255,255,0.55)";
   let cellBorder = "1px solid rgba(0,0,0,0.04)";
   if(isToday){
     cellBorder = `2px solid ${pData.color}`;
   }
-
   const showFourStat = !sInfo || myShift==="O" || isCustom;
-
   const dowColor = dow===0?"#E8746E":dow===6?"#5B9BD5":"#7C7060";
-
   return el("div",{
     onTouchStart:onPressStart, onTouchEnd:onPressEnd, onTouchMove:onPressCancel, onTouchCancel:onPressCancel,
     onMouseDown:onPressStart, onMouseUp:onPressEnd, onMouseLeave:onPressCancel,
@@ -668,7 +615,6 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
     )
   );
 }
-
 function statMini(n,color){
   return el("span",{key:Math.random(),style:{
     fontSize:9,fontWeight:700,color:n>0?color:"#D5C9B0",lineHeight:1
@@ -677,7 +623,6 @@ function statMini(n,color){
 function sep(){
   return el("span",{key:Math.random(),style:{fontSize:8,color:"#D5C9B0",lineHeight:1}},"·");
 }
-
 // ───── 시점 선택 시트 ─────
 function PersonPicker({members,me,perspective,onSelect,onClose}){
   const list = Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
@@ -712,7 +657,7 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
               transition:"all 0.15s"
             }
           },
-            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"#FFFFFF":m.color,flexShrink:0}}),
+            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"#FFFFFF":GRAY_COLOR,flexShrink:0}}),
             el("div",{style:{flex:1,textAlign:"left",minWidth:0}},
               el("div",{style:{fontSize:14,fontWeight:700,color:isCur?"#FFFFFF":"#2D2D3A",letterSpacing:"-0.02em"}},m.name),
               isMe && el("div",{style:{fontSize:10,color:isCur?"rgba(255,255,255,0.8)":"#9C8F7C",fontWeight:600}},"나")
@@ -723,18 +668,15 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
     )
   );
 }
-
 // ───── 한 줄 입력 드로어 ─────
 function InputDrawer({year,month,me,members,schedules,onClose}){
   const [text,setText] = useState("");
   const [err,setErr] = useState("");
   const [saving,setSaving] = useState(false);
-
   const meData = members[me];
   const customCode = meData?.customCode;
   const customDesc = meData?.customDesc;
   const daysInMonth = new Date(year,month+1,0).getDate();
-
   // 기존 듀티 한 줄로 미리 채우기
   useEffect(()=>{
     let s = "";
@@ -743,9 +685,7 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
     }
     setText(s);
   },[year,month,me,schedules,daysInMonth]);
-
   const validChars = ["D","E","N","O","_",customCode].filter(Boolean);
-
   const handleSave = async()=>{
     const cleaned = text.toUpperCase().replace(/\s/g,"");
     if(cleaned.length!==daysInMonth){
@@ -767,7 +707,6 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
     setSaving(false);
     onClose();
   };
-
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
@@ -786,7 +725,7 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
       el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
       el("div",{style:{fontSize:14,fontWeight:700,color:"#2D2D3A",marginBottom:6}},`${year}년 ${month+1}월 — ${daysInMonth}일치`),
       el("div",{style:{fontSize:12,color:"#9C8F7C",marginBottom:14,lineHeight:1.5}},
-        `D / E / N / O ${customCode?` / ${customCode}`:""}  사용 · 미입력은 _`,
+        `D / E / N / O ${customCode?` / ${customCode}`:""} 사용 · 미입력은 _`,
         customCode && customDesc && el("div",{style:{marginTop:2}},`${customCode} = ${customDesc}`)
       ),
       el("textarea",{
@@ -816,7 +755,6 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
     )
   );
 }
-
 // ───── 날짜 모달 ─────
 function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspective,me,onClose}){
   const dateKey = dKey(year,month,day);
@@ -824,13 +762,11 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
   const allRef = useRef(null);
   const isMyView = perspective===me;
   const [editingDuty,setEditingDuty] = useState(false);
-
   useEffect(()=>{
     if(scrollToAll && allRef.current){
       setTimeout(()=>allRef.current.scrollIntoView({behavior:"smooth",block:"start"}),200);
     }
   },[scrollToAll]);
-
   // 듀티별 그룹
   const groups = useMemo(()=>{
     const g = {D:[],E:[],N:[],O:[],custom:[]};
@@ -842,14 +778,11 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
     });
     return g;
   },[members,schedules,dateKey]);
-
   // 메모
   const dayMemos = memos[dateKey] || {};
   const memoEntries = Object.entries(dayMemos).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
-
   // 생일
   const birthdays = Object.values(members).filter(m=>m.birthMonth===month+1 && m.birthDay===day);
-
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
@@ -910,7 +843,7 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
                   border:`1.5px solid ${id===perspective?m.color:"transparent"}`
                 }
               },
-                el("div",{style:{width:10,height:10,borderRadius:"50%",background:m.color}}),
+                el("div",{style:{width:10,height:10,borderRadius:"50%",background:id===perspective?m.color:GRAY_COLOR}}),
                 el("span",{style:{fontSize:13,fontWeight:600,color:"#3A3A4A"}},m.name)
               ))
             )
@@ -929,7 +862,7 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
                 border:`1.5px solid ${id===perspective?m.color:"transparent"}`
               }
             },
-              el("div",{style:{width:18,height:18,borderRadius:"50%",background:m.color,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
+              el("div",{style:{width:18,height:18,borderRadius:"50%",background:id===perspective?m.color:GRAY_COLOR,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
               el("span",{style:{fontSize:13,fontWeight:600,color:"#3A3A4A"}},m.name),
               m.customDesc && el("span",{style:{fontSize:10,color:"#9C8F7C"}},`(${m.customDesc})`)
             ))
@@ -941,19 +874,16 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
     )
   );
 }
-
 // ───── 본인 듀티 수정 (모달 내) ─────
 function MyDutyEditor({dateKey,me,members,schedules}){
   const meData = members[me];
   const cur = schedules?.[me]?.[dateKey] || null;
   const codes = ["D","E","N","O", meData?.customCode].filter(Boolean);
-
   const setShift = async(code)=>{
     const path = `${ROOT}/schedules/${me}/${dateKey}`;
     if(cur===code) await set(ref(db,path),null);
     else await set(ref(db,path),code);
   };
-
   return el("div",{style:{marginBottom:18}},
     el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
       "── 내 듀티"),
@@ -976,16 +906,13 @@ function MyDutyEditor({dateKey,me,members,schedules}){
     )
   );
 }
-
 // ───── 메모 섹션 ─────
 function MemoSection({dateKey,me,members,memos}){
   const [text,setText] = useState("");
   const [emoji,setEmoji] = useState("📌");
   const [adding,setAdding] = useState(false);
-
   const memoEntries = Object.entries(memos).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
   const meData = members[me];
-
   const handleAdd = async()=>{
     if(!text.trim()) return;
     const newRef = push(ref(db,`${ROOT}/memos/${dateKey}`));
@@ -999,9 +926,7 @@ function MemoSection({dateKey,me,members,memos}){
   const handleDelete = async(memoId)=>{
     await remove(ref(db,`${ROOT}/memos/${dateKey}/${memoId}`));
   };
-
   const EMOJIS = ["📌","🎉","🍽","💊","✈️","🏥","📅","❤️","⭐","🎂","🏃","☕"];
-
   return el("div",null,
     el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
       "── 메모"),
@@ -1058,9 +983,8 @@ function MemoSection({dateKey,me,members,memos}){
     },"+ 메모 추가")
   );
 }
-
-// ───── 연락처 패널 ─────
-function ContactsPanel({open,onToggle,members,me,onLogout}){
+// ───── 연락처 패널 (B안 적용: perspective만 색상) ─────
+function ContactsPanel({open,onToggle,members,me,onLogout,perspective}){
   const list = Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
   return el("div",{style:{
     background:"rgba(255,255,255,0.55)",
@@ -1079,7 +1003,7 @@ function ContactsPanel({open,onToggle,members,me,onLogout}){
     ),
     open && el("div",{className:"anim-down",style:{paddingBottom:14}},
       list.map(([id,m])=>el("a",{key:id,
-        href:m.phone?`tel:${m.phone.replace(/-/g,"")}`:undefined,
+        href:m.phone?`tel:${m.phone}`:undefined,
         style:{
           display:"flex",alignItems:"center",gap:10,
           padding:"10px 6px",
@@ -1087,7 +1011,7 @@ function ContactsPanel({open,onToggle,members,me,onLogout}){
           textDecoration:"none",color:"inherit"
         }
       },
-        el("div",{style:{width:24,height:24,borderRadius:"50%",background:m.color,flexShrink:0}}),
+        el("div",{style:{width:24,height:24,borderRadius:"50%",background:id===perspective?m.color:GRAY_COLOR,flexShrink:0}}),
         el("div",{style:{flex:1,minWidth:0}},
           el("div",{style:{fontSize:14,fontWeight:700,color:"#2D2D3A",letterSpacing:"-0.01em"}},
             m.name + (id===me?" (나)":""),
@@ -1101,7 +1025,6 @@ function ContactsPanel({open,onToggle,members,me,onLogout}){
     )
   );
 }
-
 // ───── 설정 모달 ─────
 function SettingsModal({me,members,onClose,onLogout}){
   const meData = members[me];
@@ -1109,12 +1032,10 @@ function SettingsModal({me,members,onClose,onLogout}){
   const [code,setCode] = useState(meData?.customCode||"");
   const [desc,setDesc] = useState(meData?.customDesc||"");
   const [err,setErr] = useState("");
-
   const usedCodes = new Set();
   Object.values(members).forEach(m=>{
     if(m.customCode && m.customCode!==meData?.customCode) usedCodes.add(m.customCode);
   });
-
   const saveCode = async()=>{
     const c = code.toUpperCase().trim();
     if(c==="") {
@@ -1129,7 +1050,26 @@ function SettingsModal({me,members,onClose,onLogout}){
     await update(ref(db,`${ROOT}/members/${me}`),{customCode:c,customDesc:desc.trim()||null});
     setEditingCode(false);
   };
-
+  // 계정 삭제 (본인만, 비번 재확인)
+  const handleDeleteAccount = async()=>{
+    if(!confirm("⚠️ 계정을 삭제하면 모든 개인 데이터가 영구 삭제됩니다.\n\n정말 삭제하시겠습니까?")) return;
+    const inputPw = prompt("비밀번호 4자리를 다시 입력해주세요");
+    if(inputPw === null) return;
+    if(inputPw !== meData?.password){
+      alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    try {
+      // 멤버 삭제
+      await remove(ref(db,`${ROOT}/members/${me}`));
+      // 본인 스케줄 삭제
+      await remove(ref(db,`${ROOT}/schedules/${me}`));
+      alert("계정이 삭제되었습니다.");
+      onLogout();
+    } catch(e){
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
@@ -1148,7 +1088,6 @@ function SettingsModal({me,members,onClose,onLogout}){
     },
       el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
       el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"#2D2D3A"}},"설정"),
-
       // 내 정보
       el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
         el("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:8}},
@@ -1162,7 +1101,6 @@ function SettingsModal({me,members,onClose,onLogout}){
           )
         )
       ),
-
       // 커스텀 코드
       el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
         el("div",{style:{fontSize:13,fontWeight:700,color:"#2D2D3A",marginBottom:6}},"내 커스텀 근무 코드"),
@@ -1205,7 +1143,14 @@ function SettingsModal({me,members,onClose,onLogout}){
           `다른 멤버 사용 중: ${Array.from(usedCodes).join(", ")}`
         )
       ),
-
+      // 계정 삭제 (본인만)
+      el("button",{onClick:handleDeleteAccount,
+        style:{
+          width:"100%",padding:"14px 0",borderRadius:12,
+          background:MEMO_COLOR,color:"#FFFFFF",
+          fontSize:14,fontWeight:700,marginBottom:8
+        }
+      },"🗑 계정 삭제"),
       // 로그아웃
       el("button",{onClick:()=>{if(confirm("로그아웃 할래?")) onLogout();},
         style:{
@@ -1219,7 +1164,6 @@ function SettingsModal({me,members,onClose,onLogout}){
     )
   );
 }
-
 // ───── 마운트 ─────
 ReactDOM.createRoot(document.getElementById("app")).render(el(App));
 </script>
