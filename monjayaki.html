@@ -73,14 +73,35 @@ const SHIFT = {
 const RESERVED_CODES = ["D","E","N","O"];
 
 const MEMBER_COLORS = [
-  "#5B9BD5","#C07ABC","#E8746E","#F5A623","#6FB89B","#B89B6E","#D88F89",
-  "#5A8DBA","#9B6FB5","#C685A8","#6B7FA5","#B47B5C","#7BA98F","#BD7E89"
+  // 블루 계열
+  "#5B9BD5","#3D7AB8","#7AB8E0","#4A6FA5","#6BA8C7",
+  // 퍼플 계열
+  "#9B6FB5","#C07ABC","#7E5BA0","#B58FCB","#8B6FA8",
+  // 레드/핑크 계열
+  "#E8746E","#D85A8E","#C66575","#E89399","#B85770",
+  // 오렌지/옐로우 계열
+  "#F5A623","#E8954D","#D8A85C","#C99060","#E0B870",
+  // 그린 계열
+  "#6FB89B","#7BA98F","#8FBE73","#5A9B8A","#9BC78E",
+  // 브라운/얼스 계열
+  "#B89B6E","#B47B5C","#A88660","#9C7050","#C49475"
 ];
 
 const MEMO_COLOR = "#FF5C5C";
+const NEUTRAL_COLOR = "#B8AB91";
+const NEUTRAL_LIGHT = "#E8DFCD";
 const MAX_MEMBERS = 14;
 
 const dKey = (y,m,d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+
+// 전화번호 자동 하이픈
+function formatPhone(digits){
+  const d = (digits||"").replace(/\D/g,"");
+  if(d.length<4) return d;
+  if(d.length<7) return `${d.slice(0,3)}-${d.slice(3)}`;
+  if(d.length<11) return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`;
+  return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7,11)}`;
+}
 
 // ───── 메인 앱 ─────
 function App(){
@@ -152,7 +173,7 @@ function AuthScreen({mode,setMode,members,onLogin}){
   const memberCount = Object.keys(members).length;
   return el("div",{style:{minHeight:"100dvh",padding:"56px 24px 32px",display:"flex",flexDirection:"column"}},
     el("div",{style:{textAlign:"center",marginBottom:48}},
-      el("div",{style:{fontSize:52,marginBottom:8}},"🩺"),
+      el("div",{style:{fontSize:52,marginBottom:8}},"🍳"),
       el("h1",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#2D2D3A"}},"몬자야키"),
       el("p",{style:{fontSize:13,color:"#9C8F7C",marginTop:6,letterSpacing:"-0.01em"}},`현재 ${memberCount}명 / 최대 ${MAX_MEMBERS}명`)
     ),
@@ -250,7 +271,8 @@ function SignupForm({members,memberCount,onLogin}){
     if(usedNames.has(name.trim())) return setErr("이미 있는 이름");
     const m=parseInt(bMonth),d=parseInt(bDay);
     if(!(m>=1&&m<=12)||!(d>=1&&d<=31)) return setErr("생일 확인");
-    if(!phone.trim()) return setErr("전화번호");
+    const phoneDigits = phone.replace(/\D/g,"");
+    if(!/^\d{10,11}$/.test(phoneDigits)) return setErr("전화번호 10~11자리");
     if(pw.length!==4) return setErr("비번 4자리");
     if(pw!==pw2) return setErr("비번 확인 불일치");
     setErr("");
@@ -260,7 +282,7 @@ function SignupForm({members,memberCount,onLogin}){
     await set(newRef,{
       name:name.trim(),
       birthMonth:m,birthDay:d,
-      phone:phone.trim(),
+      phone:formatPhone(phoneDigits),
       password:pw,
       color,
       joinedAt:Date.now()
@@ -271,7 +293,7 @@ function SignupForm({members,memberCount,onLogin}){
   return el("div",{className:"anim-down",style:{display:"flex",flexDirection:"column",gap:12}},
     field("이름", el("input",{
       type:"text",value:name,onChange:e=>setName(e.target.value.slice(0,8)),
-      placeholder:"한글 1~8자",maxLength:8,
+      placeholder:"이름",maxLength:8,
       style:inputStyle()
     })),
     field("생일 (양력)", el("div",{style:{display:"flex",gap:8,alignItems:"center"}},
@@ -280,20 +302,21 @@ function SignupForm({members,memberCount,onLogin}){
       el("input",{type:"tel",inputMode:"numeric",value:bDay,onChange:e=>setBDay(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"일",style:{...inputStyle(),width:60,textAlign:"center"}})
     )),
     field("전화번호", el("input",{
-      type:"tel",value:phone,onChange:e=>setPhone(e.target.value.replace(/[^\d-]/g,"").slice(0,13)),
+      type:"tel",inputMode:"numeric",value:phone,
+      onChange:e=>setPhone(formatPhone(e.target.value.replace(/\D/g,"").slice(0,11))),
       placeholder:"010-0000-0000",
-      style:inputStyle()
+      style:{...inputStyle(),fontVariantNumeric:"tabular-nums"}
     })),
     field("비밀번호 4자리", el("div",{style:{display:"flex",gap:8}},
       el("input",{type:"tel",inputMode:"numeric",maxLength:4,value:pw,onChange:e=>setPw(e.target.value.replace(/\D/g,"").slice(0,4)),placeholder:"••••",style:{...inputStyle(),flex:1,letterSpacing:"0.4em",textAlign:"center"}}),
       el("input",{type:"tel",inputMode:"numeric",maxLength:4,value:pw2,onChange:e=>setPw2(e.target.value.replace(/\D/g,"").slice(0,4)),placeholder:"확인",style:{...inputStyle(),flex:1,letterSpacing:"0.4em",textAlign:"center"}})
     )),
-    field("내 색상", el("div",{style:{display:"flex",flexWrap:"wrap",gap:8,paddingTop:4}},
+    field("내 색상", el("div",{style:{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:8,paddingTop:4}},
       MEMBER_COLORS.map(c=>{
         const used = usedColors.has(c) && c!==color;
         return el("button",{key:c,onClick:()=>!used&&setColor(c),
           style:{
-            width:32,height:32,borderRadius:"50%",
+            aspectRatio:"1",borderRadius:"50%",
             background:used?"#E6DDC9":c,
             border:color===c?"3px solid #2D2D3A":"3px solid transparent",
             opacity:used?0.4:1,
@@ -373,7 +396,7 @@ function CalendarScreen(props){
   for(let d=1;d<=daysInMonth;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
 
-  // ───── 스와이프 핸들러 ─────
+  // ───── 스와이프 핸들러 (캘린더 본체: 월 이동) ─────
   const swipeRef = useRef({x:0,y:0,active:false});
   const onTouchStart = (e)=>{
     swipeRef.current = {
@@ -385,9 +408,28 @@ function CalendarScreen(props){
     const dx = e.changedTouches[0].clientX - swipeRef.current.x;
     const dy = e.changedTouches[0].clientY - swipeRef.current.y;
     if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5){
-      swipePerspective(dx<0 ? 1 : -1);
+      moveMonth(dx<0 ? 1 : -1);
     }
     swipeRef.current.active = false;
+  };
+
+  // ───── 헤더 시점 카드 스와이프 핸들러 ─────
+  const headerSwipeRef = useRef({x:0,y:0,active:false});
+  const onHeaderTouchStart = (e)=>{
+    headerSwipeRef.current = {
+      x:e.touches[0].clientX, y:e.touches[0].clientY, active:true
+    };
+  };
+  const onHeaderTouchEnd = (e)=>{
+    if(!headerSwipeRef.current.active) return;
+    const dx = e.changedTouches[0].clientX - headerSwipeRef.current.x;
+    const dy = e.changedTouches[0].clientY - headerSwipeRef.current.y;
+    if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)*1.5){
+      swipePerspective(dx<0 ? 1 : -1);
+      headerSwipeRef.current.active = false;
+      return "swiped";
+    }
+    headerSwipeRef.current.active = false;
   };
 
   if(!perspective || !pData) return el("div",{style:{padding:40,textAlign:"center",color:"#9C8F7C"}},"로딩...");
@@ -400,7 +442,8 @@ function CalendarScreen(props){
       onMoveMonth:moveMonth,
       onPickPerson:()=>setShowPicker(true),
       onGoHome:()=>setPerspective(me),
-      onSettings:()=>setShowSettings(true)
+      onSettings:()=>setShowSettings(true),
+      onHeaderTouchStart, onHeaderTouchEnd
     }),
 
     // 캘린더 본체 (스와이프 영역)
@@ -463,22 +506,34 @@ function CalendarScreen(props){
 }
 
 // ───── 헤더 ─────
-function Header({meData,pData,members,perspective,me,year,month,onMoveMonth,onPickPerson,onGoHome,onSettings}){
+function Header({meData,pData,members,perspective,me,year,month,onMoveMonth,onPickPerson,onGoHome,onSettings,onHeaderTouchStart,onHeaderTouchEnd}){
+  const swipedRef = useRef(false);
+  const handleTouchStart = (e)=>{ swipedRef.current=false; onHeaderTouchStart(e); };
+  const handleTouchEnd = (e)=>{
+    const result = onHeaderTouchEnd(e);
+    if(result==="swiped") swipedRef.current=true;
+  };
+  const handleClick = ()=>{ if(!swipedRef.current) onPickPerson(); };
+
   return el("div",{style:{padding:"14px 14px 8px"}},
     // 줄1: 시점 + 설정
     el("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:10}},
-      el("button",{onClick:onPickPerson,
+      el("div",{
+        onTouchStart:handleTouchStart,
+        onTouchEnd:handleTouchEnd,
+        onClick:handleClick,
         style:{
           flex:1,display:"flex",alignItems:"center",gap:10,
           padding:"10px 14px",borderRadius:14,
           background:"rgba(255,255,255,0.65)",
-          textAlign:"left"
+          textAlign:"left",cursor:"pointer",
+          touchAction:"pan-y"
         }
       },
         el("div",{style:{width:28,height:28,borderRadius:"50%",background:pData.color,flexShrink:0}}),
         el("div",{style:{flex:1,minWidth:0}},
           el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:600,letterSpacing:"-0.02em"}},
-            perspective===me?"내 캘린더":"보는 중"),
+            perspective===me?"내 캘린더 · 좌우로 다른 사람 보기":"보는 중 · 좌우로 전환"),
           el("div",{style:{fontSize:16,fontWeight:800,color:"#2D2D3A",letterSpacing:"-0.02em"}},
             pData.name + " ▾")
         ),
@@ -703,6 +758,7 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
         list.map(([id,m])=>{
           const isMe = id===me;
           const isCur = id===perspective;
+          const accent = isCur ? m.color : NEUTRAL_COLOR;
           return el("button",{key:id,onClick:()=>onSelect(id),
             style:{
               display:"flex",alignItems:"center",gap:10,
@@ -712,7 +768,7 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
               transition:"all 0.15s"
             }
           },
-            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"#FFFFFF":m.color,flexShrink:0}}),
+            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"#FFFFFF":NEUTRAL_LIGHT,flexShrink:0}}),
             el("div",{style:{flex:1,textAlign:"left",minWidth:0}},
               el("div",{style:{fontSize:14,fontWeight:700,color:isCur?"#FFFFFF":"#2D2D3A",letterSpacing:"-0.02em"}},m.name),
               isMe && el("div",{style:{fontSize:10,color:isCur?"rgba(255,255,255,0.8)":"#9C8F7C",fontWeight:600}},"나")
@@ -902,17 +958,20 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
               el("span",{style:{fontSize:12,color:"#5C5040",fontWeight:600}},`${info.full} · ${list.length}명`)
             ),
             el("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-              list.map(({id,m})=>el("div",{key:id,
-                style:{
-                  display:"inline-flex",alignItems:"center",gap:6,
-                  padding:"4px 10px",borderRadius:14,
-                  background:"#FFFFFF",
-                  border:`1.5px solid ${id===perspective?m.color:"transparent"}`
-                }
-              },
-                el("div",{style:{width:10,height:10,borderRadius:"50%",background:m.color}}),
-                el("span",{style:{fontSize:13,fontWeight:600,color:"#3A3A4A"}},m.name)
-              ))
+              list.map(({id,m})=>{
+                const isCur = id===perspective;
+                return el("div",{key:id,
+                  style:{
+                    display:"inline-flex",alignItems:"center",gap:6,
+                    padding:"4px 10px",borderRadius:14,
+                    background:"#FFFFFF",
+                    border:`1.5px solid ${isCur?m.color:"transparent"}`
+                  }
+                },
+                  el("div",{style:{width:10,height:10,borderRadius:"50%",background:isCur?m.color:NEUTRAL_COLOR}}),
+                  el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"#3A3A4A"}},m.name)
+                );
+              })
             )
           );
         }),
@@ -921,18 +980,21 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
         }},
           el("div",{style:{fontSize:12,color:"#5C5040",fontWeight:600,marginBottom:6}},`기타 · ${groups.custom.length}명`),
           el("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
-            groups.custom.map(({id,m,code})=>el("div",{key:id,
-              style:{
-                display:"inline-flex",alignItems:"center",gap:6,
-                padding:"4px 10px",borderRadius:14,
-                background:"#FFFFFF",
-                border:`1.5px solid ${id===perspective?m.color:"transparent"}`
-              }
-            },
-              el("div",{style:{width:18,height:18,borderRadius:"50%",background:m.color,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
-              el("span",{style:{fontSize:13,fontWeight:600,color:"#3A3A4A"}},m.name),
-              m.customDesc && el("span",{style:{fontSize:10,color:"#9C8F7C"}},`(${m.customDesc})`)
-            ))
+            groups.custom.map(({id,m,code})=>{
+              const isCur = id===perspective;
+              return el("div",{key:id,
+                style:{
+                  display:"inline-flex",alignItems:"center",gap:6,
+                  padding:"4px 10px",borderRadius:14,
+                  background:"#FFFFFF",
+                  border:`1.5px solid ${isCur?m.color:"transparent"}`
+                }
+              },
+                el("div",{style:{width:18,height:18,borderRadius:"50%",background:isCur?m.color:NEUTRAL_COLOR,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
+                el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"#3A3A4A"}},m.name),
+                m.customDesc && el("span",{style:{fontSize:10,color:"#9C8F7C"}},`(${m.customDesc})`)
+              );
+            })
           )
         )
       ),
@@ -1109,6 +1171,8 @@ function SettingsModal({me,members,onClose,onLogout}){
   const [code,setCode] = useState(meData?.customCode||"");
   const [desc,setDesc] = useState(meData?.customDesc||"");
   const [err,setErr] = useState("");
+  const [showProfile,setShowProfile] = useState(false);
+  const [showDelete,setShowDelete] = useState(false);
 
   const usedCodes = new Set();
   Object.values(members).forEach(m=>{
@@ -1143,24 +1207,30 @@ function SettingsModal({me,members,onClose,onLogout}){
         width:"100%",background:"#FAF7F0",
         borderRadius:"22px 22px 0 0",
         padding:"20px 18px 28px",
-        maxHeight:"80vh",overflowY:"auto"
+        maxHeight:"85vh",overflowY:"auto"
       }
     },
       el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
       el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"#2D2D3A"}},"설정"),
 
-      // 내 정보
+      // 내 정보 + 수정 버튼
       el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
-        el("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:8}},
+        el("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:12}},
           el("div",{style:{width:40,height:40,borderRadius:"50%",background:meData?.color}}),
-          el("div",null,
+          el("div",{style:{flex:1,minWidth:0}},
             el("div",{style:{fontSize:16,fontWeight:800,color:"#2D2D3A"}},meData?.name),
             el("div",{style:{fontSize:11,color:"#9C8F7C",marginTop:2}},
               meData?.birthMonth?`🎂 ${meData.birthMonth}/${meData.birthDay}`:"",
               meData?.phone?` · ${meData.phone}`:""
             )
           )
-        )
+        ),
+        el("button",{onClick:()=>setShowProfile(true),
+          style:{
+            width:"100%",padding:"10px",borderRadius:10,
+            background:"#F5EFE5",fontSize:13,color:"#3A3A4A",fontWeight:600
+          }
+        },"개인정보 수정")
       ),
 
       // 커스텀 코드
@@ -1211,11 +1281,208 @@ function SettingsModal({me,members,onClose,onLogout}){
         style:{
           width:"100%",padding:"14px 0",borderRadius:12,
           background:"#FFFFFF",border:"1px solid #EFE6D5",
-          color:MEMO_COLOR,fontSize:14,fontWeight:700,marginBottom:8
+          color:"#7C7060",fontSize:14,fontWeight:700,marginBottom:10
         }
       },"로그아웃"),
+
+      // 계정 삭제
+      el("button",{onClick:()=>setShowDelete(true),
+        style:{
+          width:"100%",padding:"14px 0",borderRadius:12,
+          background:"transparent",border:"1px solid rgba(255,92,92,0.3)",
+          color:MEMO_COLOR,fontSize:13,fontWeight:600,marginBottom:8
+        }
+      },"계정 삭제"),
+
       el("div",{style:{fontSize:10,color:"#B0A496",textAlign:"center",marginTop:6}},
-        "로그아웃해도 데이터는 보존됨")
+        "로그아웃해도 데이터는 보존됨"),
+
+      // 프로필 수정 모달
+      showProfile && el(ProfileEditor,{
+        me, meData, members,
+        onClose:()=>setShowProfile(false)
+      }),
+      // 계정 삭제 모달
+      showDelete && el(DeleteAccount,{
+        me, meData,
+        onClose:()=>setShowDelete(false),
+        onDeleted:onLogout
+      })
+    )
+  );
+}
+
+// ───── 프로필 수정 ─────
+function ProfileEditor({me,meData,members,onClose}){
+  const [name,setName] = useState(meData.name||"");
+  const [phone,setPhone] = useState(meData.phone||"");
+  const [bMonth,setBMonth] = useState(String(meData.birthMonth||""));
+  const [bDay,setBDay] = useState(String(meData.birthDay||""));
+  const [color,setColor] = useState(meData.color);
+  const [pw,setPw] = useState("");
+  const [pw2,setPw2] = useState("");
+  const [err,setErr] = useState("");
+  const [saving,setSaving] = useState(false);
+
+  const usedColors = new Set();
+  const usedNames = new Set();
+  Object.entries(members).forEach(([id,m])=>{
+    if(id!==me){
+      usedColors.add(m.color);
+      usedNames.add(m.name);
+    }
+  });
+
+  const handleSave = async()=>{
+    if(!name.trim()) return setErr("이름");
+    if(usedNames.has(name.trim())) return setErr("이미 있는 이름");
+    const m=parseInt(bMonth),d=parseInt(bDay);
+    if(!(m>=1&&m<=12)||!(d>=1&&d<=31)) return setErr("생일 확인");
+    const phoneDigits = phone.replace(/\D/g,"");
+    if(!/^\d{10,11}$/.test(phoneDigits)) return setErr("전화번호 10~11자리");
+    if(pw && pw.length!==4) return setErr("비번은 4자리");
+    if(pw && pw!==pw2) return setErr("비번 확인 불일치");
+    setErr(""); setSaving(true);
+    const updates = {
+      name:name.trim(),
+      birthMonth:m,birthDay:d,
+      phone:formatPhone(phoneDigits),
+      color
+    };
+    if(pw) updates.password = pw;
+    await update(ref(db,`${ROOT}/members/${me}`),updates);
+    setSaving(false);
+    onClose();
+  };
+
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"rgba(40,30,20,0.55)",
+      zIndex:80,display:"flex",alignItems:"flex-end"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        width:"100%",background:"#FAF7F0",
+        borderRadius:"22px 22px 0 0",
+        padding:"20px 18px 28px",
+        maxHeight:"88vh",overflowY:"auto"
+      }
+    },
+      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"#2D2D3A"}},"개인정보 수정"),
+
+      el("div",{style:{display:"flex",flexDirection:"column",gap:12}},
+        field("이름", el("input",{
+          type:"text",value:name,onChange:e=>setName(e.target.value.slice(0,8)),
+          maxLength:8,style:inputStyle()
+        })),
+        field("생일 (양력)", el("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+          el("input",{type:"tel",inputMode:"numeric",value:bMonth,onChange:e=>setBMonth(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"월",style:{...inputStyle(),width:60,textAlign:"center"}}),
+          el("span",{style:{color:"#B0A496"}},"/"),
+          el("input",{type:"tel",inputMode:"numeric",value:bDay,onChange:e=>setBDay(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"일",style:{...inputStyle(),width:60,textAlign:"center"}})
+        )),
+        field("전화번호", el("input",{
+          type:"tel",inputMode:"numeric",value:phone,
+          onChange:e=>setPhone(formatPhone(e.target.value.replace(/\D/g,"").slice(0,11))),
+          placeholder:"010-0000-0000",
+          style:{...inputStyle(),fontVariantNumeric:"tabular-nums"}
+        })),
+        field("색상", el("div",{style:{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:8,paddingTop:4}},
+          MEMBER_COLORS.map(c=>{
+            const used = usedColors.has(c) && c!==color;
+            return el("button",{key:c,onClick:()=>!used&&setColor(c),
+              style:{
+                aspectRatio:"1",borderRadius:"50%",
+                background:used?"#E6DDC9":c,
+                border:color===c?"3px solid #2D2D3A":"3px solid transparent",
+                opacity:used?0.4:1,
+                cursor:used?"not-allowed":"pointer"
+              }
+            });
+          })
+        )),
+        field("비밀번호 변경 (선택)", el("div",{style:{display:"flex",gap:8}},
+          el("input",{type:"tel",inputMode:"numeric",maxLength:4,value:pw,onChange:e=>setPw(e.target.value.replace(/\D/g,"").slice(0,4)),placeholder:"새 비번",style:{...inputStyle(),flex:1,letterSpacing:"0.4em",textAlign:"center"}}),
+          el("input",{type:"tel",inputMode:"numeric",maxLength:4,value:pw2,onChange:e=>setPw2(e.target.value.replace(/\D/g,"").slice(0,4)),placeholder:"확인",style:{...inputStyle(),flex:1,letterSpacing:"0.4em",textAlign:"center"}})
+        ))
+      ),
+      err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center",marginTop:10}},err),
+      el("div",{style:{display:"flex",gap:8,marginTop:18}},
+        el("button",{onClick:onClose,
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+        },"취소"),
+        el("button",{onClick:handleSave,disabled:saving,
+          style:{flex:2,padding:"14px 0",borderRadius:12,background:"#2D2D3A",color:"#FFFFFF",fontSize:14,fontWeight:700,opacity:saving?0.5:1}
+        },saving?"저장 중...":"저장")
+      )
+    )
+  );
+}
+
+// ───── 계정 삭제 ─────
+function DeleteAccount({me,meData,onClose,onDeleted}){
+  const [pw,setPw] = useState("");
+  const [confirmText,setConfirmText] = useState("");
+  const [err,setErr] = useState("");
+  const [deleting,setDeleting] = useState(false);
+
+  const handleDelete = async()=>{
+    if(meData.password!==pw) return setErr("비번 틀림");
+    if(confirmText!=="삭제") return setErr("'삭제' 두 글자를 정확히 입력");
+    setErr(""); setDeleting(true);
+    // 멤버 정보, 듀티 데이터 모두 삭제 (메모는 다른 사람도 본 거라 본인이 작성한 것만 정리는 복잡 → 보존)
+    await remove(ref(db,`${ROOT}/members/${me}`));
+    await remove(ref(db,`${ROOT}/schedules/${me}`));
+    setDeleting(false);
+    onDeleted();
+  };
+
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"rgba(40,30,20,0.6)",
+      zIndex:80,display:"flex",alignItems:"flex-end"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        width:"100%",background:"#FAF7F0",
+        borderRadius:"22px 22px 0 0",
+        padding:"22px 20px 28px"
+      }
+    },
+      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:8,color:MEMO_COLOR}},"⚠ 계정 삭제"),
+      el("div",{style:{fontSize:13,color:"#5C5040",lineHeight:1.6,marginBottom:18}},
+        `${meData.name}의 계정과 입력한 모든 듀티 데이터가 영구 삭제돼. 작성한 메모는 그룹 기록으로 남아. 되돌릴 수 없어.`
+      ),
+      el("div",{style:{display:"flex",flexDirection:"column",gap:12}},
+        field("비밀번호", el("input",{
+          type:"tel",inputMode:"numeric",maxLength:4,value:pw,
+          onChange:e=>setPw(e.target.value.replace(/\D/g,"").slice(0,4)),
+          placeholder:"••••",
+          style:{...inputStyle(),letterSpacing:"0.4em",textAlign:"center",fontSize:18,fontWeight:700}
+        })),
+        field("확인을 위해 '삭제'를 입력", el("input",{
+          type:"text",value:confirmText,
+          onChange:e=>setConfirmText(e.target.value),
+          placeholder:"삭제",
+          style:inputStyle()
+        }))
+      ),
+      err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center",marginTop:10}},err),
+      el("div",{style:{display:"flex",gap:8,marginTop:18}},
+        el("button",{onClick:onClose,
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+        },"취소"),
+        el("button",{onClick:handleDelete,disabled:deleting,
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:MEMO_COLOR,color:"#FFFFFF",fontSize:14,fontWeight:700,opacity:deleting?0.5:1}
+        },deleting?"삭제 중...":"영구 삭제")
+      )
     )
   );
 }
