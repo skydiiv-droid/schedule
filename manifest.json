@@ -2,7 +2,8 @@
   "name": "우리 동기 캘린더",
   "short_name": "동기캘린더",
   "description": "대학 동기들 공유 캘린더",
-  "start_url": "/?source=pwa",
+  "start_url": "./monjayaki.html",
+"scope": "./"
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a6bff",
