@@ -1,23 +1,24 @@
 {
-  "name": "우리 동기 캘린더",
-  "short_name": "동기캘린더",
-  "description": "대학 동기들 공유 캘린더",
+  "name": "몬자야키 캘린더",
+  "short_name": "몬자야키",
+  "description": "몬자야키 캘린더",
   "start_url": "./monjayaki.html",
-"scope": "./"
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a6bff",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
