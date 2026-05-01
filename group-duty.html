@@ -485,6 +485,7 @@ function CalendarScreen(props){
   const [showContacts,setShowContacts] = useState(false);
   const [showSettings,setShowSettings] = useState(false);
   const [modalDay,setModalDay] = useState(null); // {day, scrollToAll:bool}
+  const [quickEditDay,setQuickEditDay] = useState(null); // 빠른 듀티 변경용
 
   const isEditMode = !!me;
   const meData = me ? members[me] : null;
@@ -578,6 +579,11 @@ function CalendarScreen(props){
       onMoveMonth:moveMonth,
       onPickPerson:()=>setShowPicker(true),
       onGoHome:()=>{ if(me) setPerspective(me); },
+      onGoToday:()=>{
+        const t = new Date();
+        setYear(t.getFullYear());
+        setMonth(t.getMonth());
+      },
       onSettings:()=>setShowSettings(true),
       onLockMode, onRequestEdit,
       onHeaderTouchStart, onHeaderTouchEnd
@@ -594,9 +600,18 @@ function CalendarScreen(props){
         members, schedules, memos,
         perspective, me,
         onCellTap:(d)=>setModalDay({day:d,scrollToAll:false}),
-        onCellLongPress:(d)=>setModalDay({day:d,scrollToAll:true})
+        onCellLongPress:(d)=>{
+          if(isEditMode && perspective===me){
+            setQuickEditDay(d);
+          } else {
+            setModalDay({day:d,scrollToAll:true});
+          }
+        }
       })
     ),
+
+    // 다음 OFF 한줄평 (시점 사람 기준)
+    el(NextOffPreview, { perspective, members, schedules, year, month }),
 
     // 입력 버튼: 수정 모드 + 본인 시점일 때만
     isEditMode && perspective===me && el("div",{style:{padding:"4px 16px 8px"}},
@@ -650,15 +665,79 @@ function CalendarScreen(props){
       onClose:()=>setModalDay(null)
     }),
     showSettings && el(SettingsModal,{
-      me, members, isEditMode,
+      me, members, schedules, isEditMode,
       onClose:()=>setShowSettings(false),
       onLockMode, onFullLogout, onRequestEdit
+    }),
+    quickEditDay && el(QuickEditPopup,{
+      day:quickEditDay, year, month, me, members, schedules,
+      onClose:()=>setQuickEditDay(null)
     })
   );
 }
 
+// ───── 다음 OFF 한줄평 ─────
+function NextOffPreview({perspective,members,schedules,year,month}){
+  const info = useMemo(()=>{
+    if(!perspective) return null;
+    const mySchedule = schedules?.[perspective] || {};
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // 이번 달 끝까지 검색
+    const lastDay = new Date(year, month+1, 0);
+    let nextOffDate = null;
+    let cursor = new Date(today);
+    if(cursor.getFullYear()!==year || cursor.getMonth()!==month){
+      // 다른 월 보고 있으면 그 월 1일부터
+      cursor = new Date(year, month, 1);
+    }
+    while(cursor <= lastDay){
+      const k = dKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+      if(mySchedule[k]==="O"){
+        nextOffDate = new Date(cursor);
+        break;
+      }
+      cursor.setDate(cursor.getDate()+1);
+    }
+
+    if(!nextOffDate) return { type:"none" };
+
+    // 그날 같이 OFF인 다른 사람들
+    const k = dKey(nextOffDate.getFullYear(), nextOffDate.getMonth(), nextOffDate.getDate());
+    const sameOff = [];
+    Object.entries(members).forEach(([id,m])=>{
+      if(id===perspective) return;
+      if(schedules?.[id]?.[k]==="O") sameOff.push(m.name);
+    });
+
+    return {
+      type: sameOff.length===0 ? "alone"
+          : sameOff.length<=3 ? "few"
+          : "many",
+      date: `${nextOffDate.getMonth()+1}/${nextOffDate.getDate()}`,
+      names: sameOff,
+      count: sameOff.length
+    };
+  },[perspective,members,schedules,year,month]);
+
+  if(!info) return null;
+
+  let text = "";
+  if(info.type==="none") text = "이번 달 남은 OFF가 없어요";
+  else if(info.type==="alone") text = `다음 오프(${info.date})에는 혼자 쉬는 날이에요`;
+  else if(info.type==="few") text = `다음 오프(${info.date})에 ${info.names.join(", ")}도 같이 쉬네요`;
+  else text = `다음 오프(${info.date})에 ${info.count}명이나 같이 쉬네요`;
+
+  return el("div",{style:{
+    padding:"8px 18px 4px",
+    fontSize:12, color:"#9C8F7C", fontWeight:600,
+    letterSpacing:"-0.01em", textAlign:"center"
+  }}, text);
+}
+
 // ───── 헤더 ─────
-function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMoveMonth,onPickPerson,onGoHome,onSettings,onLockMode,onRequestEdit,onHeaderTouchStart,onHeaderTouchEnd}){
+function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMoveMonth,onPickPerson,onGoHome,onGoToday,onSettings,onLockMode,onRequestEdit,onHeaderTouchStart,onHeaderTouchEnd}){
   const swipedRef = useRef(false);
   const handleTouchStart = (e)=>{ swipedRef.current=false; onHeaderTouchStart(e); };
   const handleTouchEnd = (e)=>{
@@ -731,7 +810,8 @@ function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMov
     // 줄2: 월 이동
     el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 6px"}},
       el("button",{onClick:()=>onMoveMonth(-1),style:{fontSize:20,color:"#7C7060",padding:"4px 12px"}},"‹"),
-      el("div",{style:{fontSize:18,fontWeight:700,color:"#2D2D3A",letterSpacing:"-0.02em"}},
+      el("button",{onClick:onGoToday,
+        style:{fontSize:18,fontWeight:700,color:"#2D2D3A",letterSpacing:"-0.02em",padding:"4px 12px"}},
         `${year}.${String(month+1).padStart(2,"0")}`),
       el("button",{onClick:()=>onMoveMonth(1),style:{fontSize:20,color:"#7C7060",padding:"4px 12px"}},"›")
     )
@@ -1053,6 +1133,70 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
 }
 
 // ───── 날짜 모달 ─────
+// ───── 빠른 듀티 변경 팝업 ─────
+function QuickEditPopup({day,year,month,me,members,schedules,onClose}){
+  const meData = members[me];
+  const dateKey = dKey(year,month,day);
+  const cur = schedules?.[me]?.[dateKey] || null;
+  const codes = ["D","E","N","O", meData?.customCode].filter(Boolean);
+
+  const setShift = async(code)=>{
+    const path = `${ROOT}/schedules/${me}/${dateKey}`;
+    if(cur===code) await set(ref(db,path),null);
+    else await set(ref(db,path),code);
+    onClose();
+  };
+
+  const dow = new Date(year,month,day).getDay();
+
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"rgba(40,30,20,0.45)",
+      zIndex:55,display:"flex",alignItems:"center",justifyContent:"center"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        background:"#FAF7F0",
+        borderRadius:18,
+        padding:"18px 18px 16px",
+        margin:"0 24px",
+        minWidth:280,
+        boxShadow:"0 8px 28px rgba(60,40,20,0.18)"
+      }
+    },
+      el("div",{style:{
+        display:"flex",alignItems:"baseline",gap:8,marginBottom:14,
+        justifyContent:"center"
+      }},
+        el("div",{style:{fontSize:20,fontWeight:800,color:"#2D2D3A"}},
+          `${month+1}월 ${day}일`),
+        el("div",{style:{fontSize:13,color:dow===0?"#E8746E":dow===6?"#5B9BD5":"#9C8F7C",fontWeight:700}},
+          `(${WEEKDAYS[dow]})`)
+      ),
+      el("div",{style:{display:"flex",gap:6}},
+        codes.map(c=>{
+          const info = SHIFT[c];
+          const active = cur===c;
+          return el("button",{key:c,onClick:()=>setShift(c),
+            style:{
+              flex:1,padding:"16px 0",borderRadius:12,
+              background: active ? (info?info.color:meData.color) : "#FFFFFF",
+              color: active ? "#FFFFFF" : "#3A3A4A",
+              border:`1.5px solid ${active ? (info?info.color:meData.color) : "#EFE6D5"}`,
+              fontSize:18,fontWeight:800
+            }
+          },c);
+        })
+      ),
+      el("div",{style:{fontSize:10,color:"#B0A496",textAlign:"center",marginTop:10}},
+        cur ? "같은 듀티 다시 누르면 비움" : "탭해서 듀티 입력")
+    )
+  );
+}
+
 function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspective,me,isEditMode,onRequestEdit,onClose}){
   const dateKey = dKey(year,month,day);
   const dow = new Date(year,month,day).getDay();
@@ -1351,7 +1495,75 @@ function ContactsPanel({open,onToggle,members,me}){
 }
 
 // ───── 설정 모달 ─────
-function SettingsModal({me,members,isEditMode,onClose,onLockMode,onFullLogout,onRequestEdit}){
+// ───── 내 통계 ─────
+function MyStats({me,members,schedules}){
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const todayDate = today.getDate();
+
+  const stats = useMemo(()=>{
+    const mySchedule = schedules?.[me] || {};
+    const counts = {D:0, E:0, N:0, O:0, custom:0};
+    let totalNights = 0;
+    let maxConsecWork = 0;
+    let curConsecWork = 0;
+
+    // 이번 달 카운트
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    for(let d=1; d<=daysInMonth; d++){
+      const k = dKey(year, month, d);
+      const s = mySchedule[k];
+      if(!s) continue;
+      if(s==="D"||s==="E"||s==="N") counts[s]++;
+      else if(s==="O") counts.O++;
+      else counts.custom++;
+    }
+
+    // 누적 나이트, 최장 연속 근무 (전체 데이터 기준)
+    const allDates = Object.keys(mySchedule).sort();
+    allDates.forEach(k=>{
+      const s = mySchedule[k];
+      if(s==="N") totalNights++;
+      if(s && s!=="O"){
+        curConsecWork++;
+        if(curConsecWork > maxConsecWork) maxConsecWork = curConsecWork;
+      } else {
+        curConsecWork = 0;
+      }
+    });
+
+    return { counts, totalNights, maxConsecWork };
+  },[me,schedules,year,month]);
+
+  const cell = (label, value, color)=>el("div",{style:{
+    flex:1,
+    background:"#F5EFE5",borderRadius:10,padding:"10px 6px",
+    textAlign:"center"
+  }},
+    el("div",{style:{fontSize:18,fontWeight:800,color:color||"#2D2D3A",letterSpacing:"-0.02em"}},value),
+    el("div",{style:{fontSize:10,color:"#9C8F7C",fontWeight:600,marginTop:2}},label)
+  );
+
+  return el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
+    el("div",{style:{fontSize:13,fontWeight:700,color:"#2D2D3A",marginBottom:10}},
+      `📊 ${month+1}월 통계`),
+    el("div",{style:{display:"flex",gap:6,marginBottom:8}},
+      cell("Day", stats.counts.D, "#7EC8E3"),
+      cell("Eve", stats.counts.E, "#8FD5A6"),
+      cell("Night", stats.counts.N, "#F5D76E"),
+      cell("Off", stats.counts.O, "#D4A0D0")
+    ),
+    stats.counts.custom>0 && el("div",{style:{fontSize:11,color:"#9C8F7C",textAlign:"center",marginBottom:6}},
+      `기타 ${stats.counts.custom}일`),
+    el("div",{style:{display:"flex",gap:6,marginTop:6}},
+      cell("누적 나이트", stats.totalNights, "#F5A623"),
+      cell("최장 연속 근무", `${stats.maxConsecWork}일`, "#7C7060")
+    )
+  );
+}
+
+function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFullLogout,onRequestEdit}){
   const meData = me ? members[me] : null;
   const [editingCode,setEditingCode] = useState(false);
   const [code,setCode] = useState(meData?.customCode||"");
@@ -1433,6 +1645,9 @@ function SettingsModal({me,members,isEditMode,onClose,onLockMode,onFullLogout,on
           }
         },"개인정보 수정")
       ),
+
+      // 수정 모드: 내 통계
+      isEditMode && meData && el(MyStats, {me, members, schedules}),
 
       // 수정 모드: 커스텀 코드
       isEditMode && meData && el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
