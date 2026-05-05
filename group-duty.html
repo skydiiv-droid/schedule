@@ -6,17 +6,93 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="몬자야키">
-<meta name="theme-color" content="#F8F4ED">
+<meta name="theme-color" content="#F8F4ED" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F1D2B" media="(prefers-color-scheme: dark)">
 <title>몬자야키</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{overscroll-behavior:none}
+
+  :root {
+    --bg-1: #FAF7F0;
+    --bg-2: #F5EFE5;
+    --bg-3: #F8F2E8;
+    --surface: #FFFFFF;
+    --surface-soft: rgba(255,255,255,0.7);
+    --surface-softer: rgba(255,255,255,0.55);
+    --surface-card: #FFFFFF;
+    --surface-faint: #F5EFE5;
+    --surface-divider: #EFE6D5;
+    --text: #2D2D3A;
+    --text-soft: #3A3A4A;
+    --text-sub: #7C7060;
+    --text-faint: #9C8F7C;
+    --text-fainter: #B0A496;
+    --text-extrafaint: #D5C9B0;
+    --border: #EFE6D5;
+    --border-soft: #E0D5BD;
+    --shift-d: #7EC8E3;
+    --shift-d-light: #E8F4FA;
+    --shift-e: #8FD5A6;
+    --shift-e-light: #EAFAF0;
+    --shift-n: #F5D76E;
+    --shift-n-light: #FDF8E8;
+    --shift-o: #D4A0D0;
+    --shift-o-light: #F5EAF4;
+    --shift-custom-light: #F0EAD9;
+    --memo: #FF5C5C;
+    --birthday: #F5A623;
+    --sun: #E8746E;
+    --sat: #5B9BD5;
+    --modal-bg: rgba(40,30,20,0.5);
+    --neutral: #B8AB91;
+    --neutral-light: #E8DFCD;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-1: #1F1D2B;
+      --bg-2: #2A2638;
+      --bg-3: #25223A;
+      --surface: #2F2C3D;
+      --surface-soft: rgba(60,55,80,0.65);
+      --surface-softer: rgba(60,55,80,0.45);
+      --surface-card: #2F2C3D;
+      --surface-faint: #3A3548;
+      --surface-divider: #3A3548;
+      --text: #F0EAD9;
+      --text-soft: #E0D9C8;
+      --text-sub: #B5A990;
+      --text-faint: #9990A8;
+      --text-fainter: #7A7388;
+      --text-extrafaint: #5A5468;
+      --border: #3A3548;
+      --border-soft: #4A4358;
+      --shift-d: #6BA9C0;
+      --shift-d-light: #2C3942;
+      --shift-e: #7AB590;
+      --shift-e-light: #2D3D34;
+      --shift-n: #D4B85A;
+      --shift-n-light: #3D3A2C;
+      --shift-o: #B888B5;
+      --shift-o-light: #3A2D3A;
+      --shift-custom-light: #3A3548;
+      --memo: #FF7878;
+      --birthday: #E0A050;
+      --sun: #E89490;
+      --sat: #7BB0DD;
+      --modal-bg: rgba(0,0,0,0.6);
+      --neutral: #6B6378;
+      --neutral-light: #3A3548;
+    }
+  }
+
   body{
     min-height:100vh;min-height:100dvh;
-    background:linear-gradient(168deg,#FAF7F0 0%,#F5EFE5 55%,#F8F2E8 100%);
+    background:linear-gradient(168deg, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
     font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
-    color:#3A3A4A;
+    color: var(--text-soft);
     -webkit-user-select:none;user-select:none;
     padding-top:max(0px,env(safe-area-inset-top));
     padding-bottom:max(0px,env(safe-area-inset-bottom));
@@ -65,20 +141,20 @@ const {useState, useEffect, useMemo, useRef, useCallback} = React;
 
 const WEEKDAYS = ["일","월","화","수","목","금","토"];
 const SHIFT = {
-  D:{label:"D",full:"데이",color:"#7EC8E3",light:"#E8F4FA"},
-  E:{label:"E",full:"이브닝",color:"#8FD5A6",light:"#EAFAF0"},
-  N:{label:"N",full:"나이트",color:"#F5D76E",light:"#FDF8E8"},
-  O:{label:"O",full:"오프",color:"#D4A0D0",light:"#F5EAF4"},
+  D:{label:"D",full:"데이",color:"var(--shift-d)",light:"var(--shift-d-light)"},
+  E:{label:"E",full:"이브닝",color:"var(--shift-e)",light:"var(--shift-e-light)"},
+  N:{label:"N",full:"나이트",color:"var(--shift-n)",light:"var(--shift-n-light)"},
+  O:{label:"O",full:"오프",color:"var(--shift-o)",light:"var(--shift-o-light)"},
 };
 const RESERVED_CODES = ["D","E","N","O"];
 
 const MEMBER_COLORS = [
   // 블루 계열
-  "#5B9BD5","#3D7AB8","#7AB8E0","#4A6FA5","#6BA8C7",
+  "var(--sat)","#3D7AB8","#7AB8E0","#4A6FA5","#6BA8C7",
   // 퍼플 계열
   "#9B6FB5","#C07ABC","#7E5BA0","#B58FCB","#8B6FA8",
   // 레드/핑크 계열
-  "#E8746E","#D85A8E","#C66575","#E89399","#B85770",
+  "var(--sun)","#D85A8E","#C66575","#E89399","#B85770",
   // 오렌지/옐로우 계열
   "#F5A623","#E8954D","#D8A85C","#C99060","#E0B870",
   // 그린 계열
@@ -87,9 +163,9 @@ const MEMBER_COLORS = [
   "#B89B6E","#B47B5C","#A88660","#9C7050","#C49475"
 ];
 
-const MEMO_COLOR = "#FF5C5C";
-const NEUTRAL_COLOR = "#B8AB91";
-const NEUTRAL_LIGHT = "#E8DFCD";
+const MEMO_COLOR = "var(--memo)";
+const NEUTRAL_COLOR = "var(--neutral)";
+const NEUTRAL_LIGHT = "var(--neutral-light)";
 const MAX_MEMBERS = 14;
 
 const dKey = (y,m,d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
@@ -111,6 +187,7 @@ function App(){
   const [members,setMembers] = useState({});
   const [schedules,setSchedules] = useState({});
   const [memos,setMemos] = useState({});
+  const [notices,setNotices] = useState({});
   const [perspective,setPerspective] = useState(null); // 보는 시점 memberId
   const today = new Date();
   const [year,setYear] = useState(today.getFullYear());
@@ -168,7 +245,10 @@ function App(){
     const unsubMe = onValue(ref(db,`${ROOT}/memos`), s=>{
       setMemos(s.val()||{});
     });
-    return ()=>{ unsubM(); unsubS(); unsubMe(); };
+    const unsubN = onValue(ref(db,`${ROOT}/notices`), s=>{
+      setNotices(s.val()||{});
+    });
+    return ()=>{ unsubM(); unsubS(); unsubMe(); unsubN(); };
   },[]);
 
   // 수정 모드 진입 (auth 화면에서 가입/로그인 또는 본 화면에서 잠금 해제)
@@ -196,7 +276,7 @@ function App(){
   },[]);
 
   if(view==="loading"){
-    return el("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100dvh",color:"#A0A0A8"}},"...");
+    return el("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100dvh",color:"var(--text-faint)"}},"...");
   }
   if(view==="auth"){
     return el(AuthScreen,{
@@ -206,7 +286,7 @@ function App(){
   }
   return el(React.Fragment, null,
     el(CalendarScreen,{
-      me, members, schedules, memos,
+      me, members, schedules, memos, notices,
       perspective, setPerspective,
       year, month, setYear, setMonth,
       onLockMode:handleLockMode,
@@ -239,57 +319,57 @@ function EditModeLoginModal({members,onLogin,onClose}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.5)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:90,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"22px 18px 28px",
         maxHeight:"80vh",overflowY:"auto"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
-      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:6,color:"#2D2D3A"}},"🔓 수정 모드 진입"),
-      el("div",{style:{fontSize:12,color:"#9C8F7C",marginBottom:14,lineHeight:1.5}},
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:6,color:"var(--text)"}},"🔓 수정 모드 진입"),
+      el("div",{style:{fontSize:12,color:"var(--text-faint)",marginBottom:14,lineHeight:1.5}},
         "본인 인증 후 듀티 입력, 메모 작성, 정보 수정이 가능해져요."),
-      el("div",{style:{background:"rgba(255,255,255,0.6)",borderRadius:14,padding:"4px 6px",marginBottom:12}},
-        el("div",{style:{padding:"4px 12px 0",fontSize:11,color:"#9C8F7C",fontWeight:600}},"이름"),
+      el("div",{style:{background:"var(--surface-softer)",borderRadius:14,padding:"4px 6px",marginBottom:12}},
+        el("div",{style:{padding:"4px 12px 0",fontSize:11,color:"var(--text-faint)",fontWeight:600}},"이름"),
         memberList.length===0
-          ? el("div",{style:{padding:"14px 12px",fontSize:14,color:"#B0A496"}},"가입된 멤버가 없어요.")
+          ? el("div",{style:{padding:"14px 12px",fontSize:14,color:"var(--text-fainter)"}},"가입된 멤버가 없어요.")
           : el("div",{style:{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 8px 10px"}},
             memberList.map(([id,m])=>
               el("button",{key:id,onClick:()=>setSelectedId(id),
                 style:{
                   padding:"7px 12px",borderRadius:20,
-                  background:selectedId===id?m.color:"#FFFFFF",
-                  color:selectedId===id?"#FFFFFF":"#3A3A4A",
+                  background:selectedId===id?m.color:"var(--surface)",
+                  color:selectedId===id?"var(--surface)":"var(--text-soft)",
                   fontSize:13,fontWeight:selectedId===id?700:500,
-                  border:`1.5px solid ${selectedId===id?m.color:"#EFE6D5"}`
+                  border:`1.5px solid ${selectedId===id?m.color:"var(--border)"}`
                 }
               },m.name)
             )
           )
       ),
-      el("div",{style:{background:"rgba(255,255,255,0.6)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
-        el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:600,marginBottom:8}},"비밀번호 4자리"),
+      el("div",{style:{background:"var(--surface-softer)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
+        el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,marginBottom:8}},"비밀번호 4자리"),
         el("input",{
           type:"tel",inputMode:"numeric",pattern:"[0-9]*",maxLength:4,
           value:pw,onChange:e=>setPw(e.target.value.replace(/\D/g,"").slice(0,4)),
           placeholder:"••••",
-          style:{width:"100%",fontSize:22,letterSpacing:"0.5em",fontWeight:700,textAlign:"center",color:"#3A3A4A",padding:"4px 0"}
+          style:{width:"100%",fontSize:22,letterSpacing:"0.5em",fontWeight:700,textAlign:"center",color:"var(--text-soft)",padding:"4px 0"}
         })
       ),
       err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center",marginBottom:8}},err),
       el("div",{style:{display:"flex",gap:8,marginTop:8}},
         el("button",{onClick:onClose,
-          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"var(--surface)",border:"1px solid #EFE6D5",color:"var(--text-sub)",fontSize:14,fontWeight:600}
         },"취소"),
         el("button",{onClick:handleSubmit,
-          style:{flex:2,padding:"14px 0",borderRadius:12,background:"#2D2D3A",color:"#FFFFFF",fontSize:14,fontWeight:700}
+          style:{flex:2,padding:"14px 0",borderRadius:12,background:"var(--text)",color:"var(--surface)",fontSize:14,fontWeight:700}
         },"잠금 해제")
       )
     )
@@ -302,16 +382,16 @@ function AuthScreen({mode,setMode,members,onLogin}){
   return el("div",{style:{minHeight:"100dvh",padding:"56px 24px 32px",display:"flex",flexDirection:"column"}},
     el("div",{style:{textAlign:"center",marginBottom:48}},
       el("div",{style:{fontSize:52,marginBottom:8}},"🍳"),
-      el("h1",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#2D2D3A"}},"몬자야키"),
-      el("p",{style:{fontSize:13,color:"#9C8F7C",marginTop:6,letterSpacing:"-0.01em"}},`현재 ${memberCount}명 / 최대 ${MAX_MEMBERS}명`)
+      el("h1",{style:{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"var(--text)"}},"몬자야키"),
+      el("p",{style:{fontSize:13,color:"var(--text-faint)",marginTop:6,letterSpacing:"-0.01em"}},`현재 ${memberCount}명 / 최대 ${MAX_MEMBERS}명`)
     ),
-    el("div",{style:{display:"flex",gap:8,padding:4,background:"rgba(255,255,255,0.5)",borderRadius:14,marginBottom:24}},
+    el("div",{style:{display:"flex",gap:8,padding:4,background:"var(--surface-softer)",borderRadius:14,marginBottom:24}},
       ["login","signup"].map(m=>
         el("button",{key:m,onClick:()=>setMode(m),
           style:{
             flex:1,padding:"12px 0",borderRadius:10,
-            background:mode===m?"#FFFFFF":"transparent",
-            color:mode===m?"#2D2D3A":"#9C8F7C",
+            background:mode===m?"var(--surface)":"transparent",
+            color:mode===m?"var(--text)":"var(--text-faint)",
             fontWeight:mode===m?700:500,
             fontSize:14,
             boxShadow:mode===m?"0 2px 8px rgba(180,160,130,0.15)":"none",
@@ -341,39 +421,39 @@ function LoginForm({members,onLogin}){
   };
 
   return el("div",{className:"anim-down",style:{display:"flex",flexDirection:"column",gap:14}},
-    el("div",{style:{background:"rgba(255,255,255,0.6)",borderRadius:14,padding:"4px 6px"}},
-      el("div",{style:{padding:"4px 12px 0",fontSize:11,color:"#9C8F7C",fontWeight:600}},"이름"),
+    el("div",{style:{background:"var(--surface-softer)",borderRadius:14,padding:"4px 6px"}},
+      el("div",{style:{padding:"4px 12px 0",fontSize:11,color:"var(--text-faint)",fontWeight:600}},"이름"),
       memberList.length===0
-        ? el("div",{style:{padding:"14px 12px",fontSize:14,color:"#B0A496"}},"아직 가입한 사람이 없어. 가입 탭으로 가서 첫 멤버가 되어줘.")
+        ? el("div",{style:{padding:"14px 12px",fontSize:14,color:"var(--text-fainter)"}},"아직 가입한 사람이 없어. 가입 탭으로 가서 첫 멤버가 되어줘.")
         : el("div",{style:{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 8px 10px"}},
           memberList.map(([id,m])=>
             el("button",{key:id,onClick:()=>setSelectedId(id),
               style:{
                 padding:"7px 12px",borderRadius:20,
-                background:selectedId===id?m.color:"#FFFFFF",
-                color:selectedId===id?"#FFFFFF":"#3A3A4A",
+                background:selectedId===id?m.color:"var(--surface)",
+                color:selectedId===id?"var(--surface)":"var(--text-soft)",
                 fontSize:13,fontWeight:selectedId===id?700:500,
-                border:`1.5px solid ${selectedId===id?m.color:"#EFE6D5"}`,
+                border:`1.5px solid ${selectedId===id?m.color:"var(--border)"}`,
                 transition:"all 0.15s"
               }
             },m.name)
           )
         )
     ),
-    el("div",{style:{background:"rgba(255,255,255,0.6)",borderRadius:14,padding:"14px 16px"}},
-      el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:600,marginBottom:8}},"비밀번호 4자리"),
+    el("div",{style:{background:"var(--surface-softer)",borderRadius:14,padding:"14px 16px"}},
+      el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,marginBottom:8}},"비밀번호 4자리"),
       el("input",{
         type:"tel",inputMode:"numeric",pattern:"[0-9]*",maxLength:4,
         value:pw,onChange:e=>setPw(e.target.value.replace(/\D/g,"").slice(0,4)),
         placeholder:"••••",
-        style:{width:"100%",fontSize:22,letterSpacing:"0.5em",fontWeight:700,textAlign:"center",color:"#3A3A4A",padding:"4px 0"}
+        style:{width:"100%",fontSize:22,letterSpacing:"0.5em",fontWeight:700,textAlign:"center",color:"var(--text-soft)",padding:"4px 0"}
       })
     ),
     err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center"}},err),
     el("button",{onClick:handleSubmit,
       style:{
         marginTop:8,padding:"16px 0",borderRadius:14,
-        background:"#2D2D3A",color:"#FFFFFF",
+        background:"var(--text)",color:"var(--surface)",
         fontSize:15,fontWeight:700,letterSpacing:"-0.01em"
       }
     },"들어가기")
@@ -426,7 +506,7 @@ function SignupForm({members,memberCount,onLogin}){
     })),
     field("생일 (양력)", el("div",{style:{display:"flex",gap:8,alignItems:"center"}},
       el("input",{type:"tel",inputMode:"numeric",value:bMonth,onChange:e=>setBMonth(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"월",style:{...inputStyle(),width:60,textAlign:"center"}}),
-      el("span",{style:{color:"#B0A496"}},"/"),
+      el("span",{style:{color:"var(--text-fainter)"}},"/"),
       el("input",{type:"tel",inputMode:"numeric",value:bDay,onChange:e=>setBDay(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"일",style:{...inputStyle(),width:60,textAlign:"center"}})
     )),
     field("전화번호", el("input",{
@@ -445,7 +525,7 @@ function SignupForm({members,memberCount,onLogin}){
         return el("button",{key:c,onClick:()=>!used&&setColor(c),
           style:{
             aspectRatio:"1",borderRadius:"50%",
-            background:used?"#E6DDC9":c,
+            background:used?"var(--surface-faint)":c,
             border:color===c?"3px solid #2D2D3A":"3px solid transparent",
             opacity:used?0.4:1,
             cursor:used?"not-allowed":"pointer",
@@ -458,7 +538,7 @@ function SignupForm({members,memberCount,onLogin}){
     el("button",{onClick:handleSubmit,
       style:{
         marginTop:8,padding:"16px 0",borderRadius:14,
-        background:"#2D2D3A",color:"#FFFFFF",
+        background:"var(--text)",color:"var(--surface)",
         fontSize:15,fontWeight:700
       }
     },"가입하기")
@@ -467,25 +547,30 @@ function SignupForm({members,memberCount,onLogin}){
 
 const inputStyle = ()=>({
   width:"100%",fontSize:15,padding:"10px 12px",
-  background:"#FFFFFF",borderRadius:10,
-  border:"1px solid #EFE6D5",color:"#3A3A4A"
+  background:"var(--surface)",borderRadius:10,
+  border:"1px solid #EFE6D5",color:"var(--text-soft)"
 });
 function field(label,child){
   return el("div",{style:{display:"flex",flexDirection:"column",gap:6}},
-    el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:600,paddingLeft:2}},label),
+    el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,paddingLeft:2}},label),
     child
   );
 }
 
 // ───── 메인 캘린더 ─────
 function CalendarScreen(props){
-  const {me,members,schedules,memos,perspective,setPerspective,year,month,setYear,setMonth,onLockMode,onFullLogout,onRequestEdit} = props;
+  const {me,members,schedules,memos,notices,perspective,setPerspective,year,month,setYear,setMonth,onLockMode,onFullLogout,onRequestEdit} = props;
   const [showPicker,setShowPicker] = useState(false);
   const [showInputDrawer,setShowInputDrawer] = useState(false);
   const [showContacts,setShowContacts] = useState(false);
   const [showSettings,setShowSettings] = useState(false);
   const [modalDay,setModalDay] = useState(null); // {day, scrollToAll:bool}
   const [quickEditDay,setQuickEditDay] = useState(null); // 빠른 듀티 변경용
+  const [showHelp,setShowHelp] = useState(false);
+  const [planMode,setPlanMode] = useState(false); // 약속 잡기 모드 ON/OFF
+  const [planSelectedIds,setPlanSelectedIds] = useState([]); // 약속 잡기 - 선택된 동기 ID들
+  const [showPlanSheet,setShowPlanSheet] = useState(false);
+  const [showNotices,setShowNotices] = useState(false);
 
   const isEditMode = !!me;
   const meData = me ? members[me] : null;
@@ -568,7 +653,7 @@ function CalendarScreen(props){
     headerSwipeRef.current.active = false;
   };
 
-  if(!perspective || !pData) return el("div",{style:{padding:40,textAlign:"center",color:"#9C8F7C"}},"로딩...");
+  if(!perspective || !pData) return el("div",{style:{padding:40,textAlign:"center",color:"var(--text-faint)"}},"로딩...");
 
   return el("div",{style:{minHeight:"100dvh",display:"flex",flexDirection:"column"}},
     // 헤더
@@ -576,6 +661,7 @@ function CalendarScreen(props){
       meData, pData, members, perspective, me,
       year, month,
       isEditMode,
+      planMode,
       onMoveMonth:moveMonth,
       onPickPerson:()=>setShowPicker(true),
       onGoHome:()=>{ if(me) setPerspective(me); },
@@ -584,9 +670,14 @@ function CalendarScreen(props){
         setYear(t.getFullYear());
         setMonth(t.getMonth());
       },
+      onPlan:()=>setShowPlanSheet(true),
       onSettings:()=>setShowSettings(true),
       onLockMode, onRequestEdit,
-      onHeaderTouchStart, onHeaderTouchEnd
+      onHeaderTouchStart, onHeaderTouchEnd,
+      noticeSlot: el(NoticeBar, {
+        notices, members,
+        onOpen: ()=>setShowNotices(true)
+      })
     }),
 
     // 캘린더 본체 (스와이프 영역)
@@ -599,6 +690,7 @@ function CalendarScreen(props){
         cells, year, month, today:new Date(),
         members, schedules, memos,
         perspective, me,
+        planSelectedIds,
         onCellTap:(d)=>setModalDay({day:d,scrollToAll:false}),
         onCellLongPress:(d)=>{
           if(isEditMode && perspective===me){
@@ -618,8 +710,8 @@ function CalendarScreen(props){
       el("button",{onClick:()=>setShowInputDrawer(true),
         style:{
           width:"100%",padding:"14px 16px",borderRadius:14,
-          background:"rgba(255,255,255,0.7)",
-          color:"#2D2D3A",fontSize:14,fontWeight:600,
+          background:"var(--surface-soft)",
+          color:"var(--text)",fontSize:14,fontWeight:600,
           border:"1.5px dashed #D9CCB0",
           letterSpacing:"-0.01em"
         }
@@ -631,8 +723,8 @@ function CalendarScreen(props){
       el("button",{onClick:onRequestEdit,
         style:{
           width:"100%",padding:"12px 16px",borderRadius:14,
-          background:"rgba(255,255,255,0.55)",
-          color:"#7C7060",fontSize:13,fontWeight:600,
+          background:"var(--surface-softer)",
+          color:"var(--text-sub)",fontSize:13,fontWeight:600,
           border:"1px solid #EFE6D5",
           letterSpacing:"-0.01em",
           display:"flex",alignItems:"center",justifyContent:"center",gap:6
@@ -672,8 +764,218 @@ function CalendarScreen(props){
     quickEditDay && el(QuickEditPopup,{
       day:quickEditDay, year, month, me, members, schedules,
       onClose:()=>setQuickEditDay(null)
+    }),
+    showPlanSheet && el(PlanSheet,{
+      members, schedules, year, month, me,
+      selectedIds: planSelectedIds,
+      onChange: (ids)=>{
+        setPlanSelectedIds(ids);
+        setPlanMode(ids.length > 0);
+      },
+      onClose: ()=>setShowPlanSheet(false)
+    }),
+    showNotices && el(NoticesModal, {
+      notices, members, me, isEditMode, onRequestEdit,
+      onClose: ()=>setShowNotices(false)
     })
   );
+}
+
+// ───── 일별 공유 (SVG → PNG → Web Share) ─────
+async function shareDayAsImage({day, year, month, members, schedules, memos}){
+  const dow = new Date(year, month, day).getDay();
+  const dowKor = ["일","월","화","수","목","금","토"];
+
+  // 듀티별 그룹
+  const groups = { D:[], E:[], N:[], O:[], custom:[] };
+  Object.entries(members).forEach(([id,m])=>{
+    const k = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const s = schedules?.[id]?.[k];
+    if(!s) return;
+    if(["D","E","N","O"].includes(s)) groups[s].push({m, code:s});
+    else groups.custom.push({m, code:s});
+  });
+
+  // 메모
+  const memoEntries = Object.entries(memos||{}).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+
+  // SVG 디자인
+  const W = 720, padX = 40;
+  const SHIFT_INFO = {
+    D: { color:"#7EC8E3", light:"#E8F4FA", full:"Day", emoji:"☀️" },
+    E: { color:"#8FD5A6", light:"#EAFAF0", full:"Evening", emoji:"🌆" },
+    N: { color:"#F5D76E", light:"#FDF8E8", full:"Night", emoji:"🌙" },
+    O: { color:"#D4A0D0", light:"#F5EAF4", full:"Off", emoji:"💤" }
+  };
+
+  let y = 56;
+  let svgChunks = [];
+
+  // 헤더
+  svgChunks.push(`<text x="${padX}" y="${y}" font-family="Pretendard, -apple-system, sans-serif" font-size="22" font-weight="800" fill="#9C8F7C">🍳 monjayaki</text>`);
+  y += 50;
+  svgChunks.push(`<text x="${padX}" y="${y}" font-family="Pretendard, -apple-system, sans-serif" font-size="38" font-weight="800" fill="#2D2D3A">${month+1}월 ${day}일 <tspan fill="${dow===0?"#E8746E":dow===6?"#5B9BD5":"#9C8F7C"}">(${dowKor[dow]})</tspan></text>`);
+  y += 24;
+  svgChunks.push(`<line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" stroke="#E8DFCD" stroke-width="1"/>`);
+  y += 30;
+
+  // 듀티 그룹별
+  ["D","E","N","O"].forEach(code=>{
+    const list = groups[code];
+    if(list.length===0) return;
+    const info = SHIFT_INFO[code];
+    const groupH = 30 + Math.ceil(list.length / 4) * 40 + 16;
+
+    // 배경 카드
+    svgChunks.push(`<rect x="${padX}" y="${y}" width="${W-padX*2}" height="${groupH}" rx="14" fill="${info.light}"/>`);
+
+    // 헤더
+    svgChunks.push(`<circle cx="${padX+22}" cy="${y+24}" r="11" fill="${info.color}"/>`);
+    svgChunks.push(`<text x="${padX+22}" y="${y+29}" font-family="Pretendard, -apple-system, sans-serif" font-size="13" font-weight="800" fill="#FFFFFF" text-anchor="middle">${code}</text>`);
+    svgChunks.push(`<text x="${padX+42}" y="${y+29}" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#5C5040">${info.full} · ${list.length}명</text>`);
+
+    // 이름들
+    let nameY = y + 56;
+    list.forEach((item, idx)=>{
+      const col = idx % 4;
+      const row = Math.floor(idx / 4);
+      const cx = padX + 20 + col * ((W - padX*2 - 40) / 4);
+      const cy = nameY + row * 40;
+      svgChunks.push(`<rect x="${cx-8}" y="${cy-22}" width="${(W-padX*2-40)/4 - 8}" height="32" rx="16" fill="#FFFFFF"/>`);
+      svgChunks.push(`<circle cx="${cx+8}" cy="${cy-6}" r="6" fill="${item.m.color || "#B8AB91"}"/>`);
+      svgChunks.push(`<text x="${cx+22}" y="${cy-1}" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#3A3A4A">${escapeXml(item.m.name)}</text>`);
+    });
+
+    y += groupH + 10;
+  });
+
+  // 커스텀 그룹
+  if(groups.custom.length > 0){
+    const list = groups.custom;
+    const groupH = 30 + Math.ceil(list.length / 3) * 44 + 16;
+    svgChunks.push(`<rect x="${padX}" y="${y}" width="${W-padX*2}" height="${groupH}" rx="14" fill="#F0EAD9"/>`);
+    svgChunks.push(`<text x="${padX+22}" y="${y+28}" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#5C5040">기타 · ${list.length}명</text>`);
+    let nameY = y + 56;
+    list.forEach((item, idx)=>{
+      const col = idx % 3;
+      const row = Math.floor(idx / 3);
+      const cx = padX + 20 + col * ((W - padX*2 - 40) / 3);
+      const cy = nameY + row * 44;
+      svgChunks.push(`<rect x="${cx-8}" y="${cy-22}" width="${(W-padX*2-40)/3 - 8}" height="36" rx="18" fill="#FFFFFF"/>`);
+      svgChunks.push(`<circle cx="${cx+10}" cy="${cy-4}" r="10" fill="${item.m.color || "#B8AB91"}"/>`);
+      svgChunks.push(`<text x="${cx+10}" y="${cy}" font-family="Pretendard, -apple-system, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF" text-anchor="middle">${item.code}</text>`);
+      svgChunks.push(`<text x="${cx+26}" y="${cy+1}" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#3A3A4A">${escapeXml(item.m.name)}</text>`);
+    });
+    y += groupH + 10;
+  }
+
+  // 메모
+  if(memoEntries.length > 0){
+    y += 8;
+    svgChunks.push(`<text x="${padX}" y="${y}" font-family="Pretendard, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#9C8F7C">📝 메모</text>`);
+    y += 12;
+    memoEntries.forEach(([mid,memo])=>{
+      const author = members[memo.authorId];
+      const text = `${memo.emoji||"📌"} ${memo.text}`;
+      svgChunks.push(`<rect x="${padX}" y="${y}" width="${W-padX*2}" height="48" rx="12" fill="#FFFFFF"/>`);
+      svgChunks.push(`<text x="${padX+16}" y="${y+22}" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#3A3A4A">${escapeXml(text.slice(0,40))}</text>`);
+      svgChunks.push(`<text x="${padX+16}" y="${y+40}" font-family="Pretendard, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#9C8F7C">— ${escapeXml(author?.name||"?")}</text>`);
+      y += 56;
+    });
+  }
+
+  y += 30;
+  const H = y;
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="#FAF7F0"/>
+${svgChunks.join("\n")}
+</svg>`;
+
+  // SVG → PNG (Canvas 변환)
+  try {
+    const blob = await svgToPngBlob(svg, W, H);
+    const file = new File([blob], `monjayaki-${month+1}-${day}.png`, { type:"image/png" });
+
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title:`${month+1}월 ${day}일 듀티` });
+    } else if(navigator.share){
+      // 파일 공유 미지원 → 텍스트 폴백
+      const text = makeDayShareText({day, year, month, members, schedules, memos});
+      await navigator.share({ text, title:`${month+1}월 ${day}일 듀티` });
+    } else {
+      // Web Share 자체 미지원 → PNG 다운로드
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `monjayaki-${month+1}-${day}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch(e){
+    console.error("share failed", e);
+    // 폴백: 텍스트 복사
+    const text = makeDayShareText({day, year, month, members, schedules, memos});
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("이미지 공유 실패. 텍스트로 클립보드에 복사됨.");
+    } catch(e2){
+      alert("공유 실패: " + e.message);
+    }
+  }
+}
+
+function escapeXml(s){
+  return String(s||"").replace(/[<>&'"]/g, c => ({
+    "<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"
+  })[c]);
+}
+
+function svgToPngBlob(svg, w, h){
+  return new Promise((resolve,reject)=>{
+    const blob = new Blob([svg], { type:"image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement("canvas");
+      const scale = 2;
+      canvas.width = w * scale;
+      canvas.height = h * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#FAF7F0";
+      ctx.fillRect(0,0,canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error("toBlob failed")), "image/png");
+    };
+    img.onerror = (e)=>{ URL.revokeObjectURL(url); reject(new Error("img load failed")); };
+    img.src = url;
+  });
+}
+
+function makeDayShareText({day, year, month, members, schedules, memos}){
+  const dowKor = ["일","월","화","수","목","금","토"];
+  const dow = new Date(year, month, day).getDay();
+  const groups = { D:[], E:[], N:[], O:[], custom:[] };
+  Object.entries(members).forEach(([id,m])=>{
+    const k = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const s = schedules?.[id]?.[k];
+    if(!s) return;
+    if(["D","E","N","O"].includes(s)) groups[s].push(m.name);
+    else groups.custom.push(`${m.name}(${s})`);
+  });
+  const labels = { D:"☀️ Day", E:"🌆 Evening", N:"🌙 Night", O:"💤 Off" };
+  let text = `📅 ${month+1}월 ${day}일 (${dowKor[dow]})\n\n`;
+  ["D","E","N","O"].forEach(c=>{
+    if(groups[c].length>0){
+      text += `${labels[c]} (${groups[c].length})\n${groups[c].join(", ")}\n\n`;
+    }
+  });
+  if(groups.custom.length>0){
+    text += `기타 (${groups.custom.length})\n${groups.custom.join(", ")}\n\n`;
+  }
+  return text.trim();
 }
 
 // ───── 다음 OFF 한줄평 ─────
@@ -731,13 +1033,376 @@ function NextOffPreview({perspective,members,schedules,year,month}){
 
   return el("div",{style:{
     padding:"8px 18px 4px",
-    fontSize:12, color:"#9C8F7C", fontWeight:600,
+    fontSize:12, color:"var(--text-faint)", fontWeight:600,
     letterSpacing:"-0.01em", textAlign:"center"
   }}, text);
 }
 
+// ───── 공지 (헤더 슬롯에 표시되는 줄) ─────
+function NoticeBar({notices,members,onOpen}){
+  const list = useMemo(()=>
+    Object.entries(notices||{}).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0))
+  ,[notices]);
+
+  // 접힘 상태 (localStorage)
+  const [collapsed,setCollapsed] = useState(()=>{
+    try { return localStorage.getItem("notice_collapsed") === "1"; }
+    catch(e){ return false; }
+  });
+
+  // 안 읽은 공지 수
+  const unreadCount = useMemo(()=>{
+    let n = 0;
+    list.forEach(([nid])=>{
+      try { if(!localStorage.getItem(`notice_read_${nid}`)) n++; }
+      catch(e){}
+    });
+    return n;
+  },[list]);
+
+  if(list.length===0) return null;
+
+  const [latestId, latest] = list[0];
+  const author = members[latest.authorId];
+
+  const toggleCollapse = (e)=>{
+    e.stopPropagation();
+    const next = !collapsed;
+    setCollapsed(next);
+    try { localStorage.setItem("notice_collapsed", next?"1":"0"); } catch(e2){}
+  };
+
+  if(collapsed){
+    // 접힌 상태 — 작은 알약만
+    return el("div",{style:{padding:"2px 14px 8px"}},
+      el("button",{onClick:onOpen,
+        style:{
+          display:"inline-flex",alignItems:"center",gap:6,
+          padding:"5px 12px",borderRadius:14,
+          background:"var(--surface-soft)",
+          border:"1px solid var(--border)",
+          fontSize:11,fontWeight:600,color:"var(--text-sub)"
+        }
+      },
+        "📢",
+        el("span",null, `공지 ${list.length}`),
+        unreadCount>0 && el("span",{style:{
+          width:6,height:6,borderRadius:"50%",background:"var(--memo)"
+        }}),
+        el("span",{onClick:toggleCollapse,style:{padding:"0 4px",color:"var(--text-faint)"}},"▾")
+      )
+    );
+  }
+
+  // 펼쳐진 상태 — 최신 공지 한 줄 표시
+  return el("div",{style:{padding:"2px 14px 8px"}},
+    el("button",{onClick:onOpen,
+      style:{
+        width:"100%",display:"flex",alignItems:"center",gap:8,
+        padding:"10px 12px",borderRadius:12,
+        background:"var(--shift-n-light)",
+        border:"1px solid var(--shift-n)",
+        textAlign:"left"
+      }
+    },
+      el("div",{style:{fontSize:14,flexShrink:0}},"📢"),
+      el("div",{style:{flex:1,minWidth:0}},
+        el("div",{style:{
+          fontSize:12,fontWeight:600,color:"var(--text)",
+          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
+        }}, latest.text),
+        el("div",{style:{fontSize:10,color:"var(--text-faint)",marginTop:1}},
+          `${author?.name||"?"} · ${formatNoticeDate(latest.createdAt)}${list.length>1?` · 공지 ${list.length}개`:""}`
+        )
+      ),
+      unreadCount>0 && el("div",{style:{
+        width:7,height:7,borderRadius:"50%",background:"var(--memo)",flexShrink:0
+      }}),
+      el("button",{onClick:toggleCollapse,
+        style:{
+          padding:"4px 6px",fontSize:14,color:"var(--text-faint)",flexShrink:0
+        }
+      },"▴")
+    )
+  );
+}
+
+function formatNoticeDate(ts){
+  if(!ts) return "";
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  if(diffMin < 1) return "방금";
+  if(diffMin < 60) return `${diffMin}분 전`;
+  if(diffMin < 60*24) return `${Math.floor(diffMin/60)}시간 전`;
+  if(diffMin < 60*24*7) return `${Math.floor(diffMin/60/24)}일 전`;
+  return d.toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"});
+}
+
+// ───── 공지 목록 모달 ─────
+function NoticesModal({notices,members,me,isEditMode,onRequestEdit,onClose}){
+  const list = useMemo(()=>
+    Object.entries(notices||{}).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0))
+  ,[notices]);
+
+  const [adding,setAdding] = useState(false);
+  const [text,setText] = useState("");
+  const [saving,setSaving] = useState(false);
+
+  // 모달 열 때 모든 공지 읽음 처리
+  useEffect(()=>{
+    list.forEach(([nid])=>{
+      try { localStorage.setItem(`notice_read_${nid}`, "1"); } catch(e){}
+    });
+  },[list]);
+
+  const handleAdd = async()=>{
+    if(!text.trim()) return;
+    if(!me) { onRequestEdit && onRequestEdit(); return; }
+    setSaving(true);
+    const newRef = push(ref(db,`${ROOT}/notices`));
+    const meData = members[me];
+    await set(newRef,{
+      text: text.trim(),
+      authorId: me,
+      authorName: meData?.name || "?",
+      createdAt: Date.now()
+    });
+    setText("");
+    setAdding(false);
+    setSaving(false);
+  };
+
+  const handleDelete = async(nid)=>{
+    if(!confirm("이 공지를 삭제할까요?")) return;
+    await remove(ref(db,`${ROOT}/notices/${nid}`));
+  };
+
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"var(--modal-bg)",
+      zIndex:60,display:"flex",alignItems:"flex-end"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        width:"100%",background:"var(--bg-1)",
+        borderRadius:"22px 22px 0 0",
+        maxHeight:"86vh",overflowY:"auto",
+        padding:"20px 18px 32px"
+      }
+    },
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:14}},
+        el("div",{style:{fontSize:20,fontWeight:800,color:"var(--text)"}},"📢 공지"),
+        el("div",{style:{fontSize:13,color:"var(--text-faint)",fontWeight:600}}, `${list.length}개`)
+      ),
+
+      // 작성 영역 (수정 모드만)
+      !isEditMode ? el("button",{onClick:onRequestEdit,
+        style:{
+          width:"100%",padding:"12px",borderRadius:12,
+          background:"transparent",border:"1.5px dashed var(--border-soft)",
+          fontSize:12,color:"var(--text-fainter)",fontWeight:600,marginBottom:14
+        }
+      },"🔒 공지 작성하려면 수정 모드로")
+      : adding ? el("div",{style:{background:"var(--surface)",borderRadius:12,padding:"12px",marginBottom:14}},
+        el("textarea",{
+          value:text, onChange:e=>setText(e.target.value.slice(0,200)),
+          placeholder:"공지 내용 (최대 200자)",
+          rows:3, autoFocus:true,
+          style:{width:"100%",fontSize:14,padding:"6px 0",borderBottom:"1px solid var(--border)",resize:"none",lineHeight:1.5}
+        }),
+        el("div",{style:{fontSize:10,color:"var(--text-fainter)",textAlign:"right",marginTop:4}}, `${text.length}/200`),
+        el("div",{style:{display:"flex",gap:6,marginTop:10}},
+          el("button",{onClick:()=>{setAdding(false);setText("");},
+            style:{flex:1,padding:"10px 0",borderRadius:10,background:"var(--surface-faint)",fontSize:13,color:"var(--text-sub)",fontWeight:600}
+          },"취소"),
+          el("button",{onClick:handleAdd,disabled:saving||!text.trim(),
+            style:{flex:1,padding:"10px 0",borderRadius:10,background:"var(--text)",color:"var(--bg-1)",fontSize:13,fontWeight:700,opacity:(saving||!text.trim())?0.5:1}
+          },saving?"등록 중...":"등록")
+        )
+      ) : el("button",{onClick:()=>setAdding(true),
+        style:{
+          width:"100%",padding:"12px 0",borderRadius:12,
+          background:"transparent",border:"1.5px dashed var(--border-soft)",
+          fontSize:13,color:"var(--text-faint)",fontWeight:600,marginBottom:14
+        }
+      },"+ 공지 작성"),
+
+      // 공지 목록
+      list.length===0 && el("div",{style:{
+        padding:"30px 0",textAlign:"center",
+        fontSize:13,color:"var(--text-fainter)"
+      }},"아직 공지가 없어요"),
+
+      list.map(([nid,notice])=>{
+        const author = members[notice.authorId];
+        const isMine = isEditMode && notice.authorId===me;
+        return el("div",{key:nid,style:{
+          background:"var(--surface)",borderRadius:12,
+          padding:"12px 14px",marginBottom:8
+        }},
+          el("div",{style:{
+            fontSize:14,color:"var(--text)",lineHeight:1.5,
+            whiteSpace:"pre-wrap",wordBreak:"break-word",marginBottom:6
+          }},notice.text),
+          el("div",{style:{display:"flex",alignItems:"center",gap:6}},
+            el("div",{style:{width:6,height:6,borderRadius:"50%",background:author?.color||"var(--text-fainter)"}}),
+            el("span",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600}},author?.name||"?"),
+            el("span",{style:{fontSize:11,color:"var(--text-fainter)"}},"·"),
+            el("span",{style:{fontSize:11,color:"var(--text-fainter)"}},formatNoticeDate(notice.createdAt)),
+            el("div",{style:{flex:1}}),
+            isMine && el("button",{onClick:()=>handleDelete(nid),
+              style:{fontSize:12,color:"var(--text-fainter)",padding:"2px 6px"}
+            },"삭제")
+          )
+        );
+      }),
+
+      el("button",{onClick:onClose,
+        style:{
+          width:"100%",padding:"14px 0",borderRadius:12,
+          background:"var(--surface)",border:"1px solid var(--border)",
+          color:"var(--text-sub)",fontSize:14,fontWeight:600,marginTop:14
+        }
+      },"닫기")
+    )
+  );
+}
+
+// ───── 약속 잡기 시트 ─────
+function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose}){
+  const [localSelected,setLocalSelected] = useState(new Set(selectedIds));
+  const list = useMemo(()=>
+    Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0))
+  ,[members]);
+
+  // 각 멤버별 이번 달 본인이랑 OFF 겹치는 일수 (시점 = me 기준)
+  const overlapDays = useMemo(()=>{
+    const result = {};
+    if(!me) return result;
+    const mySchedule = schedules?.[me] || {};
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    list.forEach(([id,m])=>{
+      if(id===me){ result[id] = null; return; }
+      const other = schedules?.[id] || {};
+      let cnt = 0;
+      for(let d=1; d<=daysInMonth; d++){
+        const k = dKey(year,month,d);
+        if(mySchedule[k]==="O" && other[k]==="O") cnt++;
+      }
+      result[id] = cnt;
+    });
+    return result;
+  },[list,schedules,me,year,month]);
+
+  // 모두 OFF인 날 카운트 (선택된 사람들 + me 기준)
+  const planMatchCount = useMemo(()=>{
+    if(localSelected.size===0) return 0;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    let cnt = 0;
+    for(let d=1; d<=daysInMonth; d++){
+      const k = dKey(year,month,d);
+      let allOff = true;
+      for(const id of localSelected){
+        if(schedules?.[id]?.[k] !== "O"){ allOff = false; break; }
+      }
+      if(allOff) cnt++;
+    }
+    return cnt;
+  },[localSelected,schedules,year,month]);
+
+  const toggle = (id)=>{
+    const next = new Set(localSelected);
+    if(next.has(id)) next.delete(id);
+    else next.add(id);
+    setLocalSelected(next);
+  };
+
+  const handleApply = ()=>{
+    onChange(Array.from(localSelected));
+    onClose();
+  };
+
+  const handleClear = ()=>{
+    setLocalSelected(new Set());
+    onChange([]);
+    onClose();
+  };
+
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"var(--modal-bg)",
+      zIndex:55,display:"flex",alignItems:"flex-end"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        width:"100%",background:"var(--bg-1)",
+        borderRadius:"22px 22px 0 0",
+        padding:"20px 16px 28px",
+        maxHeight:"85vh",overflowY:"auto"
+      }
+    },
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,color:"var(--text)",marginBottom:4}},"👥 약속 잡기"),
+      el("div",{style:{fontSize:12,color:"var(--text-faint)",marginBottom:14,lineHeight:1.5}},
+        "함께 약속 잡을 사람을 선택해. 모두 OFF인 날이 캘린더에 강조됩니다."),
+
+      el("div",{style:{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}},
+        list.map(([id,m])=>{
+          if(id===me) return null;
+          const sel = localSelected.has(id);
+          const ov = overlapDays[id];
+          return el("button",{key:id,onClick:()=>toggle(id),
+            style:{
+              display:"flex",alignItems:"center",gap:10,
+              padding:"10px 12px",borderRadius:14,
+              background: sel ? m.color : "var(--surface)",
+              border:`2px solid ${sel ? m.color : "var(--border)"}`,
+              transition:"all 0.15s"
+            }
+          },
+            el("div",{style:{
+              width:22,height:22,borderRadius:"50%",
+              background: sel ? "var(--surface)" : m.color,
+              flexShrink:0
+            }}),
+            el("div",{style:{flex:1,textAlign:"left",minWidth:0}},
+              el("div",{style:{fontSize:14,fontWeight:700,color: sel ? "var(--surface)" : "var(--text)"}},m.name),
+              el("div",{style:{fontSize:10,fontWeight:600,color: sel ? "var(--surface)" : "var(--text-faint)",marginTop:1,opacity: sel?0.85:1}},
+                ov!=null ? `이번 달 ${ov}일 겹침` : "")
+            )
+          );
+        })
+      ),
+
+      localSelected.size>0 && el("div",{style:{
+        background:"var(--shift-e-light)",borderRadius:12,
+        padding:"10px 14px",marginBottom:14,
+        fontSize:13,color:"var(--text)",fontWeight:700,textAlign:"center"
+      }}, `이번 달 모두 OFF: ${planMatchCount}일`),
+
+      el("div",{style:{display:"flex",gap:8}},
+        el("button",{onClick:handleClear,
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"var(--surface)",border:"1px solid var(--border)",color:"var(--text-sub)",fontSize:14,fontWeight:600}
+        },"해제"),
+        el("button",{onClick:handleApply,
+          style:{flex:2,padding:"14px 0",borderRadius:12,background:"var(--text)",color:"var(--bg-1)",fontSize:14,fontWeight:700}
+        },localSelected.size===0 ? "닫기" : `${localSelected.size}명 선택 적용`)
+      )
+    )
+  );
+}
+
 // ───── 헤더 ─────
-function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMoveMonth,onPickPerson,onGoHome,onGoToday,onSettings,onLockMode,onRequestEdit,onHeaderTouchStart,onHeaderTouchEnd}){
+function Header({meData,pData,members,perspective,me,year,month,isEditMode,planMode,onMoveMonth,onPickPerson,onGoHome,onGoToday,onPlan,onSettings,onLockMode,onRequestEdit,onHeaderTouchStart,onHeaderTouchEnd,noticeSlot}){
   const swipedRef = useRef(false);
   const handleTouchStart = (e)=>{ swipedRef.current=false; onHeaderTouchStart(e); };
   const handleTouchEnd = (e)=>{
@@ -764,29 +1429,39 @@ function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMov
         style:{
           flex:1,display:"flex",alignItems:"center",gap:10,
           padding:"10px 14px",borderRadius:14,
-          background:"rgba(255,255,255,0.65)",
+          background:"var(--surface-soft)",
           textAlign:"left",cursor:"pointer",
           touchAction:"pan-y"
         }
       },
         el("div",{style:{width:28,height:28,borderRadius:"50%",background:pData.color,flexShrink:0}}),
         el("div",{style:{flex:1,minWidth:0}},
-          el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:600,letterSpacing:"-0.02em"}},
+          el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,letterSpacing:"-0.02em"}},
             perspectiveLabel),
-          el("div",{style:{fontSize:16,fontWeight:800,color:"#2D2D3A",letterSpacing:"-0.02em"}},
+          el("div",{style:{fontSize:16,fontWeight:800,color:"var(--text)",letterSpacing:"-0.02em"}},
             pData.name + " ▾")
         ),
         isEditMode && perspective!==me && el("button",{onClick:e=>{e.stopPropagation();onGoHome();},
-          style:{padding:"6px 10px",borderRadius:10,background:meData.color,color:"#FFFFFF",fontSize:12,fontWeight:700}
+          style:{padding:"6px 10px",borderRadius:10,background:meData.color,color:"var(--surface)",fontSize:12,fontWeight:700}
         },"내 캘린더")
       ),
+      // 약속 잡기 버튼
+      el("button",{onClick:onPlan,
+        title:"약속 잡기 (모두 OFF인 날 강조)",
+        style:{
+          width:42,height:42,borderRadius:14,
+          background: planMode ? "var(--shift-e-light)" : "var(--surface-soft)",
+          fontSize:17,
+          border: planMode ? "1.5px solid var(--shift-e)" : "none"
+        }
+      },"👥"),
       // 잠금/해제 토글
       isEditMode
         ? el("button",{onClick:onLockMode,
             title:"수정 모드 종료 (잠금)",
             style:{
               width:42,height:42,borderRadius:14,
-              background:"#FFE9C7",
+              background:"var(--shift-n-light)",
               fontSize:18,
               border:"1.5px solid #F5C97A"
             }
@@ -795,25 +1470,27 @@ function Header({meData,pData,members,perspective,me,year,month,isEditMode,onMov
             title:"수정 모드 진입",
             style:{
               width:42,height:42,borderRadius:14,
-              background:"rgba(255,255,255,0.65)",
+              background:"var(--surface-soft)",
               fontSize:18
             }
           },"🔒"),
       el("button",{onClick:onSettings,
         style:{
           width:42,height:42,borderRadius:14,
-          background:"rgba(255,255,255,0.65)",
+          background:"var(--surface-soft)",
           fontSize:18
         }
       },"⚙︎")
     ),
+    // 공지 슬롯 (시점 줄 ↔ 년월 줄 사이)
+    noticeSlot,
     // 줄2: 월 이동
     el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 6px"}},
-      el("button",{onClick:()=>onMoveMonth(-1),style:{fontSize:20,color:"#7C7060",padding:"4px 12px"}},"‹"),
+      el("button",{onClick:()=>onMoveMonth(-1),style:{fontSize:20,color:"var(--text-sub)",padding:"4px 12px"}},"‹"),
       el("button",{onClick:onGoToday,
-        style:{fontSize:18,fontWeight:700,color:"#2D2D3A",letterSpacing:"-0.02em",padding:"4px 12px"}},
+        style:{fontSize:18,fontWeight:700,color:"var(--text)",letterSpacing:"-0.02em",padding:"4px 12px"}},
         `${year}.${String(month+1).padStart(2,"0")}`),
-      el("button",{onClick:()=>onMoveMonth(1),style:{fontSize:20,color:"#7C7060",padding:"4px 12px"}},"›")
+      el("button",{onClick:()=>onMoveMonth(1),style:{fontSize:20,color:"var(--text-sub)",padding:"4px 12px"}},"›")
     )
   );
 }
@@ -823,7 +1500,7 @@ function WeekdayRow(){
     WEEKDAYS.map((w,i)=>el("div",{key:w,
       style:{
         textAlign:"center",fontSize:11,fontWeight:700,
-        color:i===0?"#E8746E":i===6?"#5B9BD5":"#9C8F7C",
+        color:i===0?"var(--sun)":i===6?"var(--sat)":"var(--text-faint)",
         padding:"4px 0",letterSpacing:"-0.01em"
       }
     },w))
@@ -831,7 +1508,7 @@ function WeekdayRow(){
 }
 
 // ───── 캘린더 그리드 ─────
-function CalendarGrid({cells,year,month,today,members,schedules,memos,perspective,me,onCellTap,onCellLongPress}){
+function CalendarGrid({cells,year,month,today,members,schedules,memos,perspective,me,planSelectedIds,onCellTap,onCellLongPress}){
   const longPressRef = useRef({timer:null,fired:false});
 
   const startPress = (day)=>{
@@ -865,6 +1542,7 @@ function CalendarGrid({cells,year,month,today,members,schedules,memos,perspectiv
         key:d, day:d, year, month, today,
         dow:idx%7,
         members, schedules, memos, perspective,
+        planSelectedIds,
         onPressStart:()=>startPress(d),
         onPressEnd:()=>endPress(d),
         onPressCancel:cancelPress
@@ -874,7 +1552,7 @@ function CalendarGrid({cells,year,month,today,members,schedules,memos,perspectiv
 }
 
 // ───── 한 셀 ─────
-function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,onPressStart,onPressEnd,onPressCancel}){
+function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,planSelectedIds,onPressStart,onPressEnd,onPressCancel}){
   const dateKey = dKey(year,month,day);
   const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===day;
 
@@ -903,16 +1581,36 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
     return Object.values(members).filter(m=>m.birthMonth===month+1 && m.birthDay===day);
   },[members,month,day]);
 
+  // 약속 잡기 모드: 선택된 사람 전원 + (현재 시점) OFF인 날 강조
+  const planMatch = useMemo(()=>{
+    if(!planSelectedIds || planSelectedIds.length===0) return false;
+    // 선택된 모든 사람이 OFF여야 함
+    for(const id of planSelectedIds){
+      if(schedules?.[id]?.[dateKey] !== "O") return false;
+    }
+    return true;
+  },[planSelectedIds,schedules,dateKey]);
+
   // 셀 색상
-  let bg = "rgba(255,255,255,0.55)";
-  let cellBorder = "1px solid rgba(0,0,0,0.04)";
+  let bg = "var(--surface-softer)";
+  let cellBorder = "1px solid var(--border)";
   if(isToday){
     cellBorder = `2px solid ${pData.color}`;
   }
+  if(planSelectedIds && planSelectedIds.length>0){
+    if(planMatch){
+      bg = "var(--shift-e-light)";
+      cellBorder = "2px solid var(--shift-e)";
+    } else {
+      bg = "var(--surface-softer)";
+      // dim - 글자도 옅게
+    }
+  }
+  const isDimmed = planSelectedIds && planSelectedIds.length>0 && !planMatch;
 
   const showFourStat = !sInfo || myShift==="O" || isCustom;
 
-  const dowColor = dow===0?"#E8746E":dow===6?"#5B9BD5":"#7C7060";
+  const dowColor = dow===0?"var(--sun)":dow===6?"var(--sat)":"var(--text-sub)";
 
   return el("div",{
     onTouchStart:onPressStart, onTouchEnd:onPressEnd, onTouchMove:onPressCancel, onTouchCancel:onPressCancel,
@@ -926,7 +1624,9 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
       padding:"3px 3px 2px",
       display:"flex",flexDirection:"column",
       cursor:"pointer",
-      overflow:"hidden"
+      overflow:"hidden",
+      opacity: isDimmed ? 0.35 : 1,
+      transition: "opacity 0.18s, background 0.18s"
     }
   },
     // 좌상단: 메모점
@@ -955,9 +1655,9 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
           }},sInfo.label)
         : isCustom
           ? el("div",{style:{
-              fontSize:16,fontWeight:800,color:"#7C7060",letterSpacing:"-0.02em",lineHeight:1
+              fontSize:16,fontWeight:800,color:"var(--text-sub)",letterSpacing:"-0.02em",lineHeight:1
             }},myShift)
-          : el("div",{style:{fontSize:11,color:"#D5C9B0"}},"·")
+          : el("div",{style:{fontSize:11,color:"var(--text-extrafaint)"}},"·")
     ),
     // 하단 통계
     el("div",{style:{
@@ -985,11 +1685,11 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,o
 
 function statMini(n,color){
   return el("span",{key:Math.random(),style:{
-    fontSize:9,fontWeight:700,color:n>0?color:"#D5C9B0",lineHeight:1
+    fontSize:9,fontWeight:700,color:n>0?color:"var(--text-extrafaint)",lineHeight:1
   }},n);
 }
 function sep(){
-  return el("span",{key:Math.random(),style:{fontSize:8,color:"#D5C9B0",lineHeight:1}},"·");
+  return el("span",{key:Math.random(),style:{fontSize:8,color:"var(--text-extrafaint)",lineHeight:1}},"·");
 }
 
 // ───── 시점 선택 시트 ─────
@@ -998,21 +1698,21 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.45)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:50,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"20px 16px 28px",
         maxHeight:"80vh",overflowY:"auto"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
-      el("div",{style:{fontSize:12,color:"#9C8F7C",fontWeight:600,marginBottom:12,paddingLeft:4}},"누구 캘린더 볼까?"),
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 18px"}}),
+      el("div",{style:{fontSize:12,color:"var(--text-faint)",fontWeight:600,marginBottom:12,paddingLeft:4}},"누구 캘린더 볼까?"),
       el("div",{style:{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}},
         list.map(([id,m])=>{
           const isMe = id===me;
@@ -1022,15 +1722,15 @@ function PersonPicker({members,me,perspective,onSelect,onClose}){
             style:{
               display:"flex",alignItems:"center",gap:10,
               padding:"12px 12px",borderRadius:14,
-              background:isCur?m.color:"#FFFFFF",
-              border:`2px solid ${isCur?m.color:"#EFE6D5"}`,
+              background:isCur?m.color:"var(--surface)",
+              border:`2px solid ${isCur?m.color:"var(--border)"}`,
               transition:"all 0.15s"
             }
           },
-            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"#FFFFFF":NEUTRAL_LIGHT,flexShrink:0}}),
+            el("div",{style:{width:24,height:24,borderRadius:"50%",background:isCur?"var(--surface)":NEUTRAL_LIGHT,flexShrink:0}}),
             el("div",{style:{flex:1,textAlign:"left",minWidth:0}},
-              el("div",{style:{fontSize:14,fontWeight:700,color:isCur?"#FFFFFF":"#2D2D3A",letterSpacing:"-0.02em"}},m.name),
-              isMe && el("div",{style:{fontSize:10,color:isCur?"rgba(255,255,255,0.8)":"#9C8F7C",fontWeight:600}},"나")
+              el("div",{style:{fontSize:14,fontWeight:700,color:isCur?"var(--surface)":"var(--text)",letterSpacing:"-0.02em"}},m.name),
+              isMe && el("div",{style:{fontSize:10,color:isCur?"rgba(255,255,255,0.8)":"var(--text-faint)",fontWeight:600}},"나")
             )
           );
         })
@@ -1086,21 +1786,21 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.45)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:50,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"20px 18px 24px"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
-      el("div",{style:{fontSize:14,fontWeight:700,color:"#2D2D3A",marginBottom:6}},`${year}년 ${month+1}월 — ${daysInMonth}일치`),
-      el("div",{style:{fontSize:12,color:"#9C8F7C",marginBottom:14,lineHeight:1.5}},
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 18px"}}),
+      el("div",{style:{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:6}},`${year}년 ${month+1}월 — ${daysInMonth}일치`),
+      el("div",{style:{fontSize:12,color:"var(--text-faint)",marginBottom:14,lineHeight:1.5}},
         `D / E / N / O ${customCode?` / ${customCode}`:""}  사용 · 미입력은 _`,
         customCode && customDesc && el("div",{style:{marginTop:2}},`${customCode} = ${customDesc}`)
       ),
@@ -1111,21 +1811,21 @@ function InputDrawer({year,month,me,members,schedules,onClose}){
         rows:4,
         style:{
           width:"100%",padding:"12px 14px",borderRadius:12,
-          background:"#FFFFFF",border:"1px solid #EFE6D5",
+          background:"var(--surface)",border:"1px solid #EFE6D5",
           fontSize:18,letterSpacing:"0.18em",fontWeight:700,
           fontFamily:"'SF Mono','Menlo',monospace",
-          color:"#2D2D3A",lineHeight:1.5,resize:"none"
+          color:"var(--text)",lineHeight:1.5,resize:"none"
         }
       }),
-      el("div",{style:{fontSize:11,color:"#B0A496",marginTop:6,textAlign:"right"}},
+      el("div",{style:{fontSize:11,color:"var(--text-fainter)",marginTop:6,textAlign:"right"}},
         `${text.replace(/\s/g,"").length} / ${daysInMonth}`),
       err && el("div",{style:{fontSize:13,color:MEMO_COLOR,marginTop:8}},err),
       el("div",{style:{display:"flex",gap:8,marginTop:14}},
         el("button",{onClick:onClose,
-          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"var(--surface)",border:"1px solid #EFE6D5",color:"var(--text-sub)",fontSize:14,fontWeight:600}
         },"취소"),
         el("button",{onClick:handleSave,disabled:saving,
-          style:{flex:2,padding:"14px 0",borderRadius:12,background:"#2D2D3A",color:"#FFFFFF",fontSize:14,fontWeight:700,opacity:saving?0.5:1}
+          style:{flex:2,padding:"14px 0",borderRadius:12,background:"var(--text)",color:"var(--surface)",fontSize:14,fontWeight:700,opacity:saving?0.5:1}
         },saving?"저장 중...":"저장")
       )
     )
@@ -1152,14 +1852,14 @@ function QuickEditPopup({day,year,month,me,members,schedules,onClose}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.45)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:55,display:"flex",alignItems:"center",justifyContent:"center"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        background:"#FAF7F0",
+        background:"var(--bg-1)",
         borderRadius:18,
         padding:"18px 18px 16px",
         margin:"0 24px",
@@ -1171,9 +1871,9 @@ function QuickEditPopup({day,year,month,me,members,schedules,onClose}){
         display:"flex",alignItems:"baseline",gap:8,marginBottom:14,
         justifyContent:"center"
       }},
-        el("div",{style:{fontSize:20,fontWeight:800,color:"#2D2D3A"}},
+        el("div",{style:{fontSize:20,fontWeight:800,color:"var(--text)"}},
           `${month+1}월 ${day}일`),
-        el("div",{style:{fontSize:13,color:dow===0?"#E8746E":dow===6?"#5B9BD5":"#9C8F7C",fontWeight:700}},
+        el("div",{style:{fontSize:13,color:dow===0?"var(--sun)":dow===6?"var(--sat)":"var(--text-faint)",fontWeight:700}},
           `(${WEEKDAYS[dow]})`)
       ),
       el("div",{style:{display:"flex",gap:6}},
@@ -1183,15 +1883,15 @@ function QuickEditPopup({day,year,month,me,members,schedules,onClose}){
           return el("button",{key:c,onClick:()=>setShift(c),
             style:{
               flex:1,padding:"16px 0",borderRadius:12,
-              background: active ? (info?info.color:meData.color) : "#FFFFFF",
-              color: active ? "#FFFFFF" : "#3A3A4A",
-              border:`1.5px solid ${active ? (info?info.color:meData.color) : "#EFE6D5"}`,
+              background: active ? (info?info.color:meData.color) : "var(--surface)",
+              color: active ? "var(--surface)" : "var(--text-soft)",
+              border:`1.5px solid ${active ? (info?info.color:meData.color) : "var(--border)"}`,
               fontSize:18,fontWeight:800
             }
           },c);
         })
       ),
-      el("div",{style:{fontSize:10,color:"#B0A496",textAlign:"center",marginTop:10}},
+      el("div",{style:{fontSize:10,color:"var(--text-fainter)",textAlign:"center",marginTop:10}},
         cur ? "같은 듀티 다시 누르면 비움" : "탭해서 듀티 입력")
     )
   );
@@ -1232,32 +1932,42 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.5)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:60,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         maxHeight:"86vh",overflowY:"auto",
         padding:"20px 18px 32px"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
       // 헤더
       el("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:14}},
-        el("div",{style:{fontSize:24,fontWeight:800,color:"#2D2D3A",letterSpacing:"-0.03em"}},
+        el("div",{style:{fontSize:24,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}},
           `${month+1}월 ${day}일`),
-        el("div",{style:{fontSize:14,color:dow===0?"#E8746E":dow===6?"#5B9BD5":"#9C8F7C",fontWeight:700}},
-          `(${WEEKDAYS[dow]})`)
+        el("div",{style:{fontSize:14,color:dow===0?"var(--sun)":dow===6?"var(--sat)":"var(--text-faint)",fontWeight:700}},
+          `(${WEEKDAYS[dow]})`),
+        el("div",{style:{flex:1}}),
+        el("button",{onClick:()=>shareDayAsImage({day,year,month,members,schedules,memos:dayMemos}),
+          title:"공유",
+          style:{
+            padding:"6px 12px",borderRadius:10,
+            background:"var(--surface)",
+            color:"var(--text-sub)",fontSize:13,fontWeight:600,
+            display:"inline-flex",alignItems:"center",gap:4
+          }
+        }, "📤 공유")
       ),
       // 생일 배너
       birthdays.length>0 && el("div",{style:{
-        background:"linear-gradient(95deg,#FFE9C7,#FFD49B)",
+        background:"linear-gradient(95deg, var(--shift-n-light), var(--shift-n-light))",
         padding:"10px 14px",borderRadius:12,marginBottom:14,
-        fontSize:13,fontWeight:700,color:"#7A4F1B"
+        fontSize:13,fontWeight:700,color:"var(--text)"
       }},
         `🎂 오늘은 ${birthdays.map(m=>m.name).join(", ")} 생일!`
       ),
@@ -1267,7 +1977,7 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
       }),
       // 모두 듀티
       el("div",{ref:allRef,style:{marginBottom:18}},
-        el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
+        el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
           "── 모두의 듀티"),
         ["D","E","N","O"].map(code=>{
           const list = groups[code];
@@ -1277,7 +1987,7 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
             background:info.light,borderRadius:12,padding:"10px 12px",marginBottom:6
           }},
             el("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:6}},
-              el("div",{style:{width:22,height:22,borderRadius:"50%",background:info.color,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}},code),
+              el("div",{style:{width:22,height:22,borderRadius:"50%",background:info.color,color:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}},code),
               el("span",{style:{fontSize:12,color:"#5C5040",fontWeight:600}},`${info.full} · ${list.length}명`)
             ),
             el("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
@@ -1287,19 +1997,19 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
                   style:{
                     display:"inline-flex",alignItems:"center",gap:6,
                     padding:"4px 10px",borderRadius:14,
-                    background:"#FFFFFF",
+                    background:"var(--surface)",
                     border:`1.5px solid ${isCur?m.color:"transparent"}`
                   }
                 },
                   el("div",{style:{width:10,height:10,borderRadius:"50%",background:isCur?m.color:NEUTRAL_COLOR}}),
-                  el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"#3A3A4A"}},m.name)
+                  el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"var(--text-soft)"}},m.name)
                 );
               })
             )
           );
         }),
         groups.custom.length>0 && el("div",{style:{
-          background:"#F0EAD9",borderRadius:12,padding:"10px 12px",marginBottom:6
+          background:"var(--shift-custom-light)",borderRadius:12,padding:"10px 12px",marginBottom:6
         }},
           el("div",{style:{fontSize:12,color:"#5C5040",fontWeight:600,marginBottom:6}},`기타 · ${groups.custom.length}명`),
           el("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
@@ -1309,13 +2019,13 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
                 style:{
                   display:"inline-flex",alignItems:"center",gap:6,
                   padding:"4px 10px",borderRadius:14,
-                  background:"#FFFFFF",
+                  background:"var(--surface)",
                   border:`1.5px solid ${isCur?m.color:"transparent"}`
                 }
               },
-                el("div",{style:{width:18,height:18,borderRadius:"50%",background:isCur?m.color:NEUTRAL_COLOR,color:"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
-                el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"#3A3A4A"}},m.name),
-                m.customDesc && el("span",{style:{fontSize:10,color:"#9C8F7C"}},`(${m.customDesc})`)
+                el("div",{style:{width:18,height:18,borderRadius:"50%",background:isCur?m.color:NEUTRAL_COLOR,color:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800}},code),
+                el("span",{style:{fontSize:13,fontWeight:isCur?700:600,color:isCur?m.color:"var(--text-soft)"}},m.name),
+                m.customDesc && el("span",{style:{fontSize:10,color:"var(--text-faint)"}},`(${m.customDesc})`)
               );
             })
           )
@@ -1340,7 +2050,7 @@ function MyDutyEditor({dateKey,me,members,schedules}){
   };
 
   return el("div",{style:{marginBottom:18}},
-    el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
+    el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
       "── 내 듀티"),
     el("div",{style:{display:"flex",gap:6}},
       codes.map(c=>{
@@ -1350,9 +2060,9 @@ function MyDutyEditor({dateKey,me,members,schedules}){
         return el("button",{key:c,onClick:()=>setShift(c),
           style:{
             flex:1,padding:"14px 0",borderRadius:12,
-            background:active ? (info?info.color:meData.color) : "#FFFFFF",
-            color:active?"#FFFFFF":"#3A3A4A",
-            border:`1.5px solid ${active ? (info?info.color:meData.color) : "#EFE6D5"}`,
+            background:active ? (info?info.color:meData.color) : "var(--surface)",
+            color:active?"var(--surface)":"var(--text-soft)",
+            border:`1.5px solid ${active ? (info?info.color:meData.color) : "var(--border)"}`,
             fontSize:15,fontWeight:800,
             transition:"all 0.15s"
           }
@@ -1363,6 +2073,73 @@ function MyDutyEditor({dateKey,me,members,schedules}){
 }
 
 // ───── 메모 섹션 ─────
+// ───── 메모 반응 ─────
+const REACTION_EMOJIS = ["👍","🎉","❤️","🍻","😂","🙌"];
+
+function MemoReactions({dateKey,mid,reactions,members,me,isEditMode,onRequestEdit}){
+  const [pickerOpen,setPickerOpen] = useState(false);
+
+  // reactions: { emoji: { userId: true } }
+  const summary = useMemo(()=>{
+    const arr = [];
+    Object.entries(reactions||{}).forEach(([emoji, users])=>{
+      const userIds = Object.keys(users||{}).filter(uid => users[uid] && members[uid]);
+      if(userIds.length>0){
+        arr.push({ emoji, userIds, count: userIds.length, mineActive: !!(me && users[me]) });
+      }
+    });
+    // 많이 받은 순 정렬
+    arr.sort((a,b)=>b.count-a.count);
+    return arr;
+  },[reactions,members,me]);
+
+  const toggleReaction = async(emoji)=>{
+    if(!isEditMode){
+      onRequestEdit && onRequestEdit();
+      return;
+    }
+    const path = `${ROOT}/memos/${dateKey}/${mid}/reactions/${emoji}/${me}`;
+    const cur = reactions?.[emoji]?.[me];
+    if(cur) await set(ref(db,path), null);
+    else await set(ref(db,path), true);
+    setPickerOpen(false);
+  };
+
+  return el("div",{style:{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}},
+    summary.map(({emoji,userIds,count,mineActive})=>
+      el("button",{key:emoji, onClick:()=>toggleReaction(emoji),
+        title: userIds.map(uid=>members[uid]?.name).filter(Boolean).join(", "),
+        style:{
+          display:"inline-flex",alignItems:"center",gap:3,
+          padding:"3px 8px",borderRadius:12,
+          background: mineActive ? "var(--shift-d-light)" : "var(--surface-faint)",
+          border: `1px solid ${mineActive ? "var(--shift-d)" : "var(--border)"}`,
+          fontSize:12, lineHeight:1
+        }
+      },
+        el("span",null, emoji),
+        el("span",{style:{fontSize:11,fontWeight:600,color:"var(--text-sub)"}}, count)
+      )
+    ),
+    pickerOpen
+      ? el("div",{style:{display:"inline-flex",alignItems:"center",gap:2,padding:"3px 6px",borderRadius:12,background:"var(--surface-faint)",border:"1px solid var(--border)"}},
+          REACTION_EMOJIS.map(em=>el("button",{key:em,onClick:()=>toggleReaction(em),
+            style:{fontSize:14,padding:"2px 4px",lineHeight:1}}, em))
+        )
+      : el("button",{onClick:()=>{
+          if(!isEditMode){ onRequestEdit && onRequestEdit(); return; }
+          setPickerOpen(true);
+        },
+        style:{
+          padding:"3px 8px",borderRadius:12,
+          background:"transparent",
+          border:"1px dashed var(--border-soft)",
+          fontSize:11, color:"var(--text-fainter)", lineHeight:1
+        }
+      }, summary.length===0 ? "+ 반응" : "+")
+  );
+}
+
 function MemoSection({dateKey,me,members,memos,isEditMode,onRequestEdit}){
   const [text,setText] = useState("");
   const [emoji,setEmoji] = useState("📌");
@@ -1388,44 +2165,48 @@ function MemoSection({dateKey,me,members,memos,isEditMode,onRequestEdit}){
   const EMOJIS = ["📌","🎉","🍽","💊","✈️","🏥","📅","❤️","⭐","🎂","🏃","☕"];
 
   return el("div",null,
-    el("div",{style:{fontSize:11,color:"#9C8F7C",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
+    el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:700,marginBottom:8,letterSpacing:"-0.01em"}},
       "── 메모"),
-    memoEntries.length===0 && !adding && el("div",{style:{fontSize:13,color:"#B0A496",padding:"6px 4px"}},"아직 메모 없음"),
+    memoEntries.length===0 && !adding && el("div",{style:{fontSize:13,color:"var(--text-fainter)",padding:"6px 4px"}},"아직 메모 없음"),
     memoEntries.map(([mid,memo])=>{
       const isMine = isEditMode && memo.authorId===me;
       const author = members[memo.authorId];
+      const reactions = memo.reactions || {}; // {emoji: {userId: true, ...}}
       return el("div",{key:mid,style:{
-        display:"flex",alignItems:"flex-start",gap:8,
+        display:"flex",flexDirection:"column",gap:6,
         padding:"10px 12px",borderRadius:12,
-        background:"#FFFFFF",marginBottom:6
+        background:"var(--surface)",marginBottom:6
       }},
-        el("div",{style:{fontSize:18,lineHeight:1.2}},memo.emoji||"📌"),
-        el("div",{style:{flex:1,minWidth:0}},
-          el("div",{style:{fontSize:14,color:"#3A3A4A",lineHeight:1.4,wordBreak:"break-word"}},memo.text),
-          el("div",{style:{fontSize:10,color:"#9C8F7C",marginTop:3,display:"flex",alignItems:"center",gap:5}},
-            el("div",{style:{width:6,height:6,borderRadius:"50%",background:author?.color||"#B0A496"}}),
-            el("span",null,author?.name||"?"),
-            el("span",null,"·"),
-            el("span",null,new Date(memo.createdAt||0).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"}))
-          )
+        el("div",{style:{display:"flex",alignItems:"flex-start",gap:8}},
+          el("div",{style:{fontSize:18,lineHeight:1.2}},memo.emoji||"📌"),
+          el("div",{style:{flex:1,minWidth:0}},
+            el("div",{style:{fontSize:14,color:"var(--text-soft)",lineHeight:1.4,wordBreak:"break-word"}},memo.text),
+            el("div",{style:{fontSize:10,color:"var(--text-faint)",marginTop:3,display:"flex",alignItems:"center",gap:5}},
+              el("div",{style:{width:6,height:6,borderRadius:"50%",background:author?.color||"var(--text-fainter)"}}),
+              el("span",null,author?.name||"?"),
+              el("span",null,"·"),
+              el("span",null,new Date(memo.createdAt||0).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"}))
+            )
+          ),
+          isMine && el("button",{onClick:()=>handleDelete(mid),
+            style:{fontSize:13,color:"var(--text-fainter)",padding:"4px 6px"}},"삭제")
         ),
-        isMine && el("button",{onClick:()=>handleDelete(mid),
-          style:{fontSize:13,color:"#B0A496",padding:"4px 6px"}},"삭제")
+        el(MemoReactions, { dateKey, mid, reactions, members, me, isEditMode, onRequestEdit })
       );
     }),
     !isEditMode ? el("button",{onClick:onRequestEdit,
       style:{
         width:"100%",padding:"10px 0",borderRadius:12,
         background:"transparent",border:"1.5px dashed #D9CCB0",
-        fontSize:12,color:"#B0A496",fontWeight:600,marginTop:6
+        fontSize:12,color:"var(--text-fainter)",fontWeight:600,marginTop:6
       }
     },"🔒 메모 작성하려면 수정 모드로")
-    : adding ? el("div",{style:{background:"#FFFFFF",borderRadius:12,padding:"10px 12px",marginTop:6}},
+    : adding ? el("div",{style:{background:"var(--surface)",borderRadius:12,padding:"10px 12px",marginTop:6}},
       el("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}},
         EMOJIS.map(e=>el("button",{key:e,onClick:()=>setEmoji(e),
           style:{
             fontSize:18,padding:"4px 6px",borderRadius:8,
-            background:emoji===e?"#F0EAD9":"transparent"
+            background:emoji===e?"var(--shift-custom-light)":"transparent"
           }
         },e))
       ),
@@ -1435,17 +2216,17 @@ function MemoSection({dateKey,me,members,memos,isEditMode,onRequestEdit}){
       }),
       el("div",{style:{display:"flex",gap:6,marginTop:10}},
         el("button",{onClick:()=>{setAdding(false);setText("");},
-          style:{flex:1,padding:"10px 0",borderRadius:10,background:"#F5EFE5",fontSize:13,color:"#7C7060",fontWeight:600}
+          style:{flex:1,padding:"10px 0",borderRadius:10,background:"var(--surface-faint)",fontSize:13,color:"var(--text-sub)",fontWeight:600}
         },"취소"),
         el("button",{onClick:handleAdd,
-          style:{flex:1,padding:"10px 0",borderRadius:10,background:"#2D2D3A",color:"#FFFFFF",fontSize:13,fontWeight:700}
+          style:{flex:1,padding:"10px 0",borderRadius:10,background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:700}
         },"추가")
       )
     ) : el("button",{onClick:()=>setAdding(true),
       style:{
         width:"100%",padding:"10px 0",borderRadius:12,
         background:"transparent",border:"1.5px dashed #D9CCB0",
-        fontSize:13,color:"#9C8F7C",fontWeight:600,marginTop:6
+        fontSize:13,color:"var(--text-faint)",fontWeight:600,marginTop:6
       }
     },"+ 메모 추가")
   );
@@ -1455,7 +2236,7 @@ function MemoSection({dateKey,me,members,memos,isEditMode,onRequestEdit}){
 function ContactsPanel({open,onToggle,members,me}){
   const list = Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0));
   return el("div",{style:{
-    background:"rgba(255,255,255,0.55)",
+    background:"var(--surface-softer)",
     borderTop:"1px solid rgba(0,0,0,0.04)",
     padding:"4px 14px"
   }},
@@ -1463,7 +2244,7 @@ function ContactsPanel({open,onToggle,members,me}){
       style:{
         width:"100%",padding:"10px 4px",
         display:"flex",alignItems:"center",justifyContent:"space-between",
-        fontSize:13,fontWeight:600,color:"#7C7060"
+        fontSize:13,fontWeight:600,color:"var(--text-sub)"
       }
     },
       el("span",null,`📇 연락처 (${list.length}명)`),
@@ -1481,14 +2262,14 @@ function ContactsPanel({open,onToggle,members,me}){
       },
         el("div",{style:{width:24,height:24,borderRadius:"50%",background:m.color,flexShrink:0}}),
         el("div",{style:{flex:1,minWidth:0}},
-          el("div",{style:{fontSize:14,fontWeight:700,color:"#2D2D3A",letterSpacing:"-0.01em"}},
+          el("div",{style:{fontSize:14,fontWeight:700,color:"var(--text)",letterSpacing:"-0.01em"}},
             m.name + (id===me?" (나)":""),
-            m.birthMonth && el("span",{style:{fontSize:11,color:"#B0A496",fontWeight:500,marginLeft:6}},
+            m.birthMonth && el("span",{style:{fontSize:11,color:"var(--text-fainter)",fontWeight:500,marginLeft:6}},
               `🎂 ${m.birthMonth}/${m.birthDay}`)
           ),
-          m.phone && el("div",{style:{fontSize:12,color:"#7C7060",marginTop:1,fontVariantNumeric:"tabular-nums"}},m.phone)
+          m.phone && el("div",{style:{fontSize:12,color:"var(--text-sub)",marginTop:1,fontVariantNumeric:"tabular-nums"}},m.phone)
         ),
-        m.phone && el("div",{style:{fontSize:13,color:"#B0A496"}},"📞")
+        m.phone && el("div",{style:{fontSize:13,color:"var(--text-fainter)"}},"📞")
       ))
     )
   );
@@ -1538,27 +2319,27 @@ function MyStats({me,members,schedules}){
 
   const cell = (label, value, color)=>el("div",{style:{
     flex:1,
-    background:"#F5EFE5",borderRadius:10,padding:"10px 6px",
+    background:"var(--surface-faint)",borderRadius:10,padding:"10px 6px",
     textAlign:"center"
   }},
-    el("div",{style:{fontSize:18,fontWeight:800,color:color||"#2D2D3A",letterSpacing:"-0.02em"}},value),
-    el("div",{style:{fontSize:10,color:"#9C8F7C",fontWeight:600,marginTop:2}},label)
+    el("div",{style:{fontSize:18,fontWeight:800,color:color||"var(--text)",letterSpacing:"-0.02em"}},value),
+    el("div",{style:{fontSize:10,color:"var(--text-faint)",fontWeight:600,marginTop:2}},label)
   );
 
-  return el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
-    el("div",{style:{fontSize:13,fontWeight:700,color:"#2D2D3A",marginBottom:10}},
+  return el("div",{style:{background:"var(--surface)",borderRadius:14,padding:14,marginBottom:14}},
+    el("div",{style:{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:10}},
       `📊 ${month+1}월 통계`),
     el("div",{style:{display:"flex",gap:6,marginBottom:8}},
-      cell("Day", stats.counts.D, "#7EC8E3"),
-      cell("Eve", stats.counts.E, "#8FD5A6"),
-      cell("Night", stats.counts.N, "#F5D76E"),
-      cell("Off", stats.counts.O, "#D4A0D0")
+      cell("Day", stats.counts.D, "var(--shift-d)"),
+      cell("Eve", stats.counts.E, "var(--shift-e)"),
+      cell("Night", stats.counts.N, "var(--shift-n)"),
+      cell("Off", stats.counts.O, "var(--shift-o)")
     ),
-    stats.counts.custom>0 && el("div",{style:{fontSize:11,color:"#9C8F7C",textAlign:"center",marginBottom:6}},
+    stats.counts.custom>0 && el("div",{style:{fontSize:11,color:"var(--text-faint)",textAlign:"center",marginBottom:6}},
       `기타 ${stats.counts.custom}일`),
     el("div",{style:{display:"flex",gap:6,marginTop:6}},
       cell("누적 나이트", stats.totalNights, "#F5A623"),
-      cell("최장 연속 근무", `${stats.maxConsecWork}일`, "#7C7060")
+      cell("최장 연속 근무", `${stats.maxConsecWork}일`, "var(--text-sub)")
     )
   );
 }
@@ -1571,6 +2352,7 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
   const [err,setErr] = useState("");
   const [showProfile,setShowProfile] = useState(false);
   const [showDelete,setShowDelete] = useState(false);
+  const [showHelp,setShowHelp] = useState(false);
 
   const usedCodes = new Set();
   Object.values(members).forEach(m=>{
@@ -1595,44 +2377,58 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.5)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:70,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"20px 18px 28px",
         maxHeight:"85vh",overflowY:"auto"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 18px"}}),
-      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"#2D2D3A"}},"설정"),
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 18px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"var(--text)"}},"설정"),
+
+      // 사용법 (모드 무관)
+      el("button",{onClick:()=>setShowHelp(true),
+        style:{
+          width:"100%",padding:"14px",borderRadius:14,
+          background:"var(--surface)",
+          fontSize:14,color:"var(--text)",fontWeight:700,
+          marginBottom:14,
+          display:"flex",alignItems:"center",justifyContent:"space-between"
+        }
+      },
+        el("span",null,"📖 사용법"),
+        el("span",{style:{color:"var(--text-faint)"}},"›")
+      ),
 
       // 게스트 모드 안내
-      !isEditMode && el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:16,marginBottom:14,textAlign:"center"}},
+      !isEditMode && el("div",{style:{background:"var(--surface)",borderRadius:14,padding:16,marginBottom:14,textAlign:"center"}},
         el("div",{style:{fontSize:32,marginBottom:6}},"🔒"),
-        el("div",{style:{fontSize:14,fontWeight:700,color:"#2D2D3A",marginBottom:6}},"보기 모드"),
-        el("div",{style:{fontSize:12,color:"#9C8F7C",marginBottom:14,lineHeight:1.5}},
+        el("div",{style:{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:6}},"보기 모드"),
+        el("div",{style:{fontSize:12,color:"var(--text-faint)",marginBottom:14,lineHeight:1.5}},
           "수정 모드로 진입하면 본인 정보 수정,\n커스텀 코드 설정, 계정 관리 등이 가능해요."),
         el("button",{onClick:()=>{onClose();onRequestEdit();},
           style:{
             width:"100%",padding:"12px 0",borderRadius:12,
-            background:"#2D2D3A",color:"#FFFFFF",
+            background:"var(--text)",color:"var(--surface)",
             fontSize:14,fontWeight:700
           }
         },"🔓 수정 모드로 진입")
       ),
 
       // 수정 모드: 내 정보 + 수정 버튼
-      isEditMode && meData && el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
+      isEditMode && meData && el("div",{style:{background:"var(--surface)",borderRadius:14,padding:14,marginBottom:14}},
         el("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:12}},
           el("div",{style:{width:40,height:40,borderRadius:"50%",background:meData?.color}}),
           el("div",{style:{flex:1,minWidth:0}},
-            el("div",{style:{fontSize:16,fontWeight:800,color:"#2D2D3A"}},meData?.name),
-            el("div",{style:{fontSize:11,color:"#9C8F7C",marginTop:2}},
+            el("div",{style:{fontSize:16,fontWeight:800,color:"var(--text)"}},meData?.name),
+            el("div",{style:{fontSize:11,color:"var(--text-faint)",marginTop:2}},
               meData?.birthMonth?`🎂 ${meData.birthMonth}/${meData.birthDay}`:"",
               meData?.phone?` · ${meData.phone}`:""
             )
@@ -1641,7 +2437,7 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
         el("button",{onClick:()=>setShowProfile(true),
           style:{
             width:"100%",padding:"10px",borderRadius:10,
-            background:"#F5EFE5",fontSize:13,color:"#3A3A4A",fontWeight:600
+            background:"var(--surface-faint)",fontSize:13,color:"var(--text-soft)",fontWeight:600
           }
         },"개인정보 수정")
       ),
@@ -1650,9 +2446,9 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
       isEditMode && meData && el(MyStats, {me, members, schedules}),
 
       // 수정 모드: 커스텀 코드
-      isEditMode && meData && el("div",{style:{background:"#FFFFFF",borderRadius:14,padding:14,marginBottom:14}},
-        el("div",{style:{fontSize:13,fontWeight:700,color:"#2D2D3A",marginBottom:6}},"내 커스텀 근무 코드"),
-        el("div",{style:{fontSize:11,color:"#9C8F7C",marginBottom:10,lineHeight:1.5}},
+      isEditMode && meData && el("div",{style:{background:"var(--surface)",borderRadius:14,padding:14,marginBottom:14}},
+        el("div",{style:{fontSize:13,fontWeight:700,color:"var(--text)",marginBottom:6}},"내 커스텀 근무 코드"),
+        el("div",{style:{fontSize:11,color:"var(--text-faint)",marginBottom:10,lineHeight:1.5}},
           "D/E/N/O 외에 한 글자 알파벳을 본인 근무로 지정할 수 있어. 예: I = 8am~6pm 상근. 모두 듀티 카운트(D/E/N/O 수)에는 포함 안 됨."
         ),
         editingCode ? el("div",null,
@@ -1671,23 +2467,23 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
           err && el("div",{style:{fontSize:12,color:MEMO_COLOR,marginBottom:8}},err),
           el("div",{style:{display:"flex",gap:6}},
             el("button",{onClick:()=>{setEditingCode(false);setErr("");setCode(meData?.customCode||"");setDesc(meData?.customDesc||"");},
-              style:{flex:1,padding:"10px 0",borderRadius:10,background:"#F5EFE5",fontSize:13,color:"#7C7060",fontWeight:600}
+              style:{flex:1,padding:"10px 0",borderRadius:10,background:"var(--surface-faint)",fontSize:13,color:"var(--text-sub)",fontWeight:600}
             },"취소"),
             el("button",{onClick:saveCode,
-              style:{flex:2,padding:"10px 0",borderRadius:10,background:"#2D2D3A",color:"#FFFFFF",fontSize:13,fontWeight:700}
+              style:{flex:2,padding:"10px 0",borderRadius:10,background:"var(--text)",color:"var(--surface)",fontSize:13,fontWeight:700}
             },"저장")
           )
         ) : el("button",{onClick:()=>setEditingCode(true),
           style:{
             width:"100%",padding:"12px",borderRadius:10,
-            background:"#F5EFE5",fontSize:14,color:"#3A3A4A",fontWeight:600,
+            background:"var(--surface-faint)",fontSize:14,color:"var(--text-soft)",fontWeight:600,
             display:"flex",alignItems:"center",justifyContent:"space-between"
           }
         },
           el("span",null, meData?.customCode ? `${meData.customCode} = ${meData.customDesc||""}` : "코드 추가"),
-          el("span",{style:{color:"#9C8F7C"}},"›")
+          el("span",{style:{color:"var(--text-faint)"}},"›")
         ),
-        usedCodes.size>0 && el("div",{style:{fontSize:10,color:"#B0A496",marginTop:8}},
+        usedCodes.size>0 && el("div",{style:{fontSize:10,color:"var(--text-fainter)",marginTop:8}},
           `다른 멤버 사용 중: ${Array.from(usedCodes).join(", ")}`
         )
       ),
@@ -1696,8 +2492,8 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
       isEditMode && el("button",{onClick:()=>{onClose();onLockMode();},
         style:{
           width:"100%",padding:"14px 0",borderRadius:12,
-          background:"#FFFFFF",border:"1px solid #EFE6D5",
-          color:"#7C7060",fontSize:14,fontWeight:700,marginBottom:10
+          background:"var(--surface)",border:"1px solid #EFE6D5",
+          color:"var(--text-sub)",fontSize:14,fontWeight:700,marginBottom:10
         }
       },"🔒 수정 모드 종료"),
 
@@ -1710,7 +2506,7 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
         }
       },"계정 삭제"),
 
-      isEditMode && el("div",{style:{fontSize:10,color:"#B0A496",textAlign:"center",marginTop:6}},
+      isEditMode && el("div",{style:{fontSize:10,color:"var(--text-fainter)",textAlign:"center",marginTop:6}},
         "창을 닫거나 잠금 시 게스트 모드로 돌아가요. 데이터는 보존됨."),
 
       // 프로필 수정 모달
@@ -1723,8 +2519,73 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
         me, meData,
         onClose:()=>setShowDelete(false),
         onDeleted:onFullLogout
-      })
+      }),
+      // 사용법 모달
+      showHelp && el(HelpModal, { onClose:()=>setShowHelp(false) })
     )
+  );
+}
+
+// ───── 사용법 모달 (껍데기) ─────
+function HelpModal({onClose}){
+  return el("div",{className:"anim-fade",
+    onClick:onClose,
+    style:{
+      position:"fixed",inset:0,background:"var(--modal-bg)",
+      zIndex:80,display:"flex",alignItems:"flex-end"
+    }
+  },
+    el("div",{className:"anim-up",
+      onClick:e=>e.stopPropagation(),
+      style:{
+        width:"100%",background:"var(--bg-1)",
+        borderRadius:"22px 22px 0 0",
+        padding:"20px 18px 32px",
+        maxHeight:"85vh",overflowY:"auto"
+      }
+    },
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 18px"}}),
+      el("div",{style:{fontSize:20,fontWeight:800,marginBottom:18,color:"var(--text)"}},"📖 사용법"),
+
+      el(HelpItem, { title: "✏️ 처음 시작할 때", body: "가입 후 본인 듀티를 입력해야 다른 동기들도 볼 수 있어요.\n헤더 🔒 → 비번 입력 → '📝 한 줄 입력' 버튼 → DDEENNOO... 한 달치 한 번에." }),
+      el(HelpItem, { title: "🔒 보기 모드와 🔓 수정 모드", body: "평소엔 보기 모드(🔒). 다른 사람 듀티 보고, 약속 잡고.\n본인 듀티나 메모 추가하려면 🔒 탭 → 비번 입력으로 수정 모드(🔓) 진입.\n앱 닫으면 자동으로 다시 보기 모드로 돌아가요." }),
+      el(HelpItem, { title: "📅 친구 듀티 보기", body: "헤더 시점 카드(이름) 좌우로 슬라이드하거나, 카드 탭해서 사람 선택." }),
+      el(HelpItem, { title: "🍻 약속 잡기", body: "캘린더 셀 탭 → 그날 모두의 듀티 한눈에.\n캘린더 아래 '다음 오프(5/2)에 슬기, 지원도 같이 쉬네요' 한줄평도 참고.\n헤더 👥 버튼 → 동기 다중 선택 → 모두 OFF인 날 강조 표시." }),
+      el(HelpItem, { title: "📝 듀티 빠르게 수정", body: "수정 모드에서 셀 꾹 누르기 → D/E/N/O 빠른 변경 팝업.\n또는 셀 탭 → 모달 안에서 듀티 변경." }),
+      el(HelpItem, { title: "💬 메모", body: "'치맥 ㄱㄱ' 같은 약속 메모 작성 시 작성자 자동 표시.\n본인이 쓴 메모만 삭제 가능.\n메모에 반응 (👍🍻 등) 추가 가능." }),
+      el(HelpItem, { title: "🎨 커스텀 근무 코드", body: "간호사가 아니면 D/E/N/O로 표현 안 되겠죠.\n설정 → '커스텀 근무 코드'에서 한 글자 등록 (예: I = 8am-6pm)." }),
+      el(HelpItem, { title: "📞 연락처", body: "화면 맨 아래 '📇 연락처' 토글 → 전화번호 탭하면 바로 통화." }),
+
+      el("button",{onClick:onClose,
+        style:{
+          width:"100%",padding:"14px 0",borderRadius:12,
+          background:"var(--text)",color:"var(--bg-1)",
+          fontSize:14,fontWeight:700,marginTop:12
+        }
+      },"닫기")
+    )
+  );
+}
+
+function HelpItem({title,body}){
+  const [open,setOpen] = useState(false);
+  return el("div",{style:{
+    background:"var(--surface)",borderRadius:12,padding:"4px 0",marginBottom:8
+  }},
+    el("button",{onClick:()=>setOpen(!open),
+      style:{
+        width:"100%",padding:"12px 14px",
+        display:"flex",alignItems:"center",justifyContent:"space-between",
+        fontSize:14,fontWeight:700,color:"var(--text)",textAlign:"left"
+      }
+    },
+      el("span",null,title),
+      el("span",{style:{color:"var(--text-faint)",transition:"transform 0.2s",transform:open?"rotate(90deg)":"none"}},"›")
+    ),
+    open && el("div",{className:"anim-down",style:{
+      padding:"0 14px 14px",
+      fontSize:13,color:"var(--text-sub)",lineHeight:1.6,whiteSpace:"pre-wrap"
+    }}, body)
   );
 }
 
@@ -1774,21 +2635,21 @@ function ProfileEditor({me,meData,members,onClose}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.55)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:80,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"20px 18px 28px",
         maxHeight:"88vh",overflowY:"auto"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
-      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"#2D2D3A"}},"개인정보 수정"),
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{fontSize:18,fontWeight:800,marginBottom:16,color:"var(--text)"}},"개인정보 수정"),
 
       el("div",{style:{display:"flex",flexDirection:"column",gap:12}},
         field("이름", el("input",{
@@ -1797,7 +2658,7 @@ function ProfileEditor({me,meData,members,onClose}){
         })),
         field("생일 (양력)", el("div",{style:{display:"flex",gap:8,alignItems:"center"}},
           el("input",{type:"tel",inputMode:"numeric",value:bMonth,onChange:e=>setBMonth(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"월",style:{...inputStyle(),width:60,textAlign:"center"}}),
-          el("span",{style:{color:"#B0A496"}},"/"),
+          el("span",{style:{color:"var(--text-fainter)"}},"/"),
           el("input",{type:"tel",inputMode:"numeric",value:bDay,onChange:e=>setBDay(e.target.value.replace(/\D/g,"").slice(0,2)),placeholder:"일",style:{...inputStyle(),width:60,textAlign:"center"}})
         )),
         field("전화번호", el("input",{
@@ -1812,7 +2673,7 @@ function ProfileEditor({me,meData,members,onClose}){
             return el("button",{key:c,onClick:()=>!used&&setColor(c),
               style:{
                 aspectRatio:"1",borderRadius:"50%",
-                background:used?"#E6DDC9":c,
+                background:used?"var(--surface-faint)":c,
                 border:color===c?"3px solid #2D2D3A":"3px solid transparent",
                 opacity:used?0.4:1,
                 cursor:used?"not-allowed":"pointer"
@@ -1828,10 +2689,10 @@ function ProfileEditor({me,meData,members,onClose}){
       err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center",marginTop:10}},err),
       el("div",{style:{display:"flex",gap:8,marginTop:18}},
         el("button",{onClick:onClose,
-          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"var(--surface)",border:"1px solid #EFE6D5",color:"var(--text-sub)",fontSize:14,fontWeight:600}
         },"취소"),
         el("button",{onClick:handleSave,disabled:saving,
-          style:{flex:2,padding:"14px 0",borderRadius:12,background:"#2D2D3A",color:"#FFFFFF",fontSize:14,fontWeight:700,opacity:saving?0.5:1}
+          style:{flex:2,padding:"14px 0",borderRadius:12,background:"var(--text)",color:"var(--surface)",fontSize:14,fontWeight:700,opacity:saving?0.5:1}
         },saving?"저장 중...":"저장")
       )
     )
@@ -1859,19 +2720,19 @@ function DeleteAccount({me,meData,onClose,onDeleted}){
   return el("div",{className:"anim-fade",
     onClick:onClose,
     style:{
-      position:"fixed",inset:0,background:"rgba(40,30,20,0.6)",
+      position:"fixed",inset:0,background:"var(--modal-bg)",
       zIndex:80,display:"flex",alignItems:"flex-end"
     }
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
       style:{
-        width:"100%",background:"#FAF7F0",
+        width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
         padding:"22px 20px 28px"
       }
     },
-      el("div",{style:{width:36,height:4,background:"#E0D5BD",borderRadius:2,margin:"0 auto 14px"}}),
+      el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
       el("div",{style:{fontSize:18,fontWeight:800,marginBottom:8,color:MEMO_COLOR}},"⚠ 계정 삭제"),
       el("div",{style:{fontSize:13,color:"#5C5040",lineHeight:1.6,marginBottom:18}},
         `${meData.name}의 계정과 입력한 모든 듀티 데이터가 영구 삭제돼. 작성한 메모는 그룹 기록으로 남아. 되돌릴 수 없어.`
@@ -1893,10 +2754,10 @@ function DeleteAccount({me,meData,onClose,onDeleted}){
       err && el("div",{style:{fontSize:13,color:MEMO_COLOR,textAlign:"center",marginTop:10}},err),
       el("div",{style:{display:"flex",gap:8,marginTop:18}},
         el("button",{onClick:onClose,
-          style:{flex:1,padding:"14px 0",borderRadius:12,background:"#FFFFFF",border:"1px solid #EFE6D5",color:"#7C7060",fontSize:14,fontWeight:600}
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:"var(--surface)",border:"1px solid #EFE6D5",color:"var(--text-sub)",fontSize:14,fontWeight:600}
         },"취소"),
         el("button",{onClick:handleDelete,disabled:deleting,
-          style:{flex:1,padding:"14px 0",borderRadius:12,background:MEMO_COLOR,color:"#FFFFFF",fontSize:14,fontWeight:700,opacity:deleting?0.5:1}
+          style:{flex:1,padding:"14px 0",borderRadius:12,background:MEMO_COLOR,color:"var(--surface)",fontSize:14,fontWeight:700,opacity:deleting?0.5:1}
         },deleting?"삭제 중...":"영구 삭제")
       )
     )
