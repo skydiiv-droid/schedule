@@ -759,7 +759,8 @@ function CalendarScreen(props){
     showSettings && el(SettingsModal,{
       me, members, schedules, isEditMode,
       onClose:()=>setShowSettings(false),
-      onLockMode, onFullLogout, onRequestEdit
+      onLockMode, onFullLogout, onRequestEdit,
+      onOpenNotices: ()=>setShowNotices(true)
     }),
     quickEditDay && el(QuickEditPopup,{
       day:quickEditDay, year, month, me, members, schedules,
@@ -899,11 +900,11 @@ ${svgChunks.join("\n")}
     const file = new File([blob], `monjayaki-${month+1}-${day}.png`, { type:"image/png" });
 
     if(navigator.canShare && navigator.canShare({ files:[file] })){
-      await navigator.share({ files:[file], title:`${month+1}월 ${day}일 듀티` });
+      await navigator.share({ files:[file] });
     } else if(navigator.share){
       // 파일 공유 미지원 → 텍스트 폴백
       const text = makeDayShareText({day, year, month, members, schedules, memos});
-      await navigator.share({ text, title:`${month+1}월 ${day}일 듀티` });
+      await navigator.share({ text });
     } else {
       // Web Share 자체 미지원 → PNG 다운로드
       const url = URL.createObjectURL(blob);
@@ -1060,7 +1061,20 @@ function NoticeBar({notices,members,onOpen}){
     return n;
   },[list]);
 
-  if(list.length===0) return null;
+  if(list.length===0){
+    // 공지 0개 — 작은 진입 버튼만
+    return el("div",{style:{padding:"2px 14px 8px"}},
+      el("button",{onClick:onOpen,
+        style:{
+          display:"inline-flex",alignItems:"center",gap:6,
+          padding:"5px 12px",borderRadius:14,
+          background:"var(--surface-soft)",
+          border:"1px dashed var(--border-soft)",
+          fontSize:11,fontWeight:600,color:"var(--text-fainter)"
+        }
+      }, "📢 공지 없음")
+    );
+  }
 
   const [latestId, latest] = list[0];
   const author = members[latest.authorId];
@@ -1608,8 +1622,6 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
   }
   const isDimmed = planSelectedIds && planSelectedIds.length>0 && !planMatch;
 
-  const showFourStat = !sInfo || myShift==="O" || isCustom;
-
   const dowColor = dow===0?"var(--sun)":dow===6?"var(--sat)":"var(--text-sub)";
 
   return el("div",{
@@ -1659,26 +1671,19 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
             }},myShift)
           : el("div",{style:{fontSize:11,color:"var(--text-extrafaint)"}},"·")
     ),
-    // 하단 통계
+    // 하단 통계 (항상 O · D · E · N 4개)
     el("div",{style:{
       display:"flex",justifyContent:"center",alignItems:"center",
-      gap:showFourStat?2:6,
+      gap:2,
       paddingBottom:1,minHeight:11
     }},
-      showFourStat
-        ? [
-            statMini(counts.O, SHIFT.O.color),
-            sep(),
-            statMini(counts.D, SHIFT.D.color),
-            sep(),
-            statMini(counts.E, SHIFT.E.color),
-            sep(),
-            statMini(counts.N, SHIFT.N.color),
-          ]
-        : sInfo && [
-            statMini(counts.O, SHIFT.O.color),
-            statMini(sameCount, sInfo.color)
-          ]
+      statMini(counts.O, SHIFT.O.color),
+      sep(),
+      statMini(counts.D, SHIFT.D.color),
+      sep(),
+      statMini(counts.E, SHIFT.E.color),
+      sep(),
+      statMini(counts.N, SHIFT.N.color)
     )
   );
 }
@@ -2344,7 +2349,7 @@ function MyStats({me,members,schedules}){
   );
 }
 
-function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFullLogout,onRequestEdit}){
+function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFullLogout,onRequestEdit,onOpenNotices}){
   const meData = me ? members[me] : null;
   const [editingCode,setEditingCode] = useState(false);
   const [code,setCode] = useState(meData?.customCode||"");
@@ -2399,11 +2404,25 @@ function SettingsModal({me,members,schedules,isEditMode,onClose,onLockMode,onFul
           width:"100%",padding:"14px",borderRadius:14,
           background:"var(--surface)",
           fontSize:14,color:"var(--text)",fontWeight:700,
-          marginBottom:14,
+          marginBottom:8,
           display:"flex",alignItems:"center",justifyContent:"space-between"
         }
       },
         el("span",null,"📖 사용법"),
+        el("span",{style:{color:"var(--text-faint)"}},"›")
+      ),
+
+      // 공지 관리 (모드 무관 - 작성은 모달 안에서 다시 체크)
+      el("button",{onClick:()=>{onClose();onOpenNotices && onOpenNotices();},
+        style:{
+          width:"100%",padding:"14px",borderRadius:14,
+          background:"var(--surface)",
+          fontSize:14,color:"var(--text)",fontWeight:700,
+          marginBottom:14,
+          display:"flex",alignItems:"center",justifyContent:"space-between"
+        }
+      },
+        el("span",null,"📢 공지"),
         el("span",{style:{color:"var(--text-faint)"}},"›")
       ),
 
