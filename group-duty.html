@@ -754,6 +754,12 @@ function CalendarScreen(props){
       members, schedules, memos,
       perspective, me, isEditMode,
       onRequestEdit,
+      onChangeDay: (newY, newM, newD)=>{
+        // 월/년 바뀌면 함께 업데이트
+        if(newY !== year) setYear(newY);
+        if(newM !== month) setMonth(newM);
+        setModalDay({ day: newD, scrollToAll: false });
+      },
       onClose:()=>setModalDay(null)
     }),
     showSettings && el(SettingsModal,{
@@ -1314,20 +1320,44 @@ function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose
     return result;
   },[list,schedules,me,year,month]);
 
-  // 모두 OFF인 날 카운트 (선택된 사람들 + me 기준)
-  const planMatchCount = useMemo(()=>{
-    if(localSelected.size===0) return 0;
+  // 모두 매칭되는 날 카운트 (선택된 사람들 기준) - 3가지 상황별
+  const planMatchCounts = useMemo(()=>{
+    if(localSelected.size===0) return { off:0, d:0, e:0 };
     const daysInMonth = new Date(year, month+1, 0).getDate();
-    let cnt = 0;
+    let offCnt = 0, dCnt = 0, eCnt = 0;
     for(let d=1; d<=daysInMonth; d++){
       const k = dKey(year,month,d);
+
+      // 1. 모두 OFF
       let allOff = true;
       for(const id of localSelected){
         if(schedules?.[id]?.[k] !== "O"){ allOff = false; break; }
       }
-      if(allOff) cnt++;
+      if(allOff){ offCnt++; continue; }
+
+      // 2. 모두 D
+      let allD = true;
+      for(const id of localSelected){
+        if(schedules?.[id]?.[k] !== "D"){ allD = false; break; }
+      }
+      if(allD){ dCnt++; continue; }
+
+      // 3. 모두 E + 다음 날 모두 OFF
+      let allE = true;
+      for(const id of localSelected){
+        if(schedules?.[id]?.[k] !== "E"){ allE = false; break; }
+      }
+      if(allE){
+        const nextDate = new Date(year, month, d+1);
+        const nextKey = dKey(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate());
+        let nextAllOff = true;
+        for(const id of localSelected){
+          if(schedules?.[id]?.[nextKey] !== "O"){ nextAllOff = false; break; }
+        }
+        if(nextAllOff) eCnt++;
+      }
     }
-    return cnt;
+    return { off:offCnt, d:dCnt, e:eCnt };
   },[localSelected,schedules,year,month]);
 
   const toggle = (id)=>{
@@ -1397,11 +1427,33 @@ function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose
         })
       ),
 
-      localSelected.size>0 && el("div",{style:{
-        background:"var(--shift-e-light)",borderRadius:12,
-        padding:"10px 14px",marginBottom:14,
-        fontSize:13,color:"var(--text)",fontWeight:700,textAlign:"center"
-      }}, `이번 달 모두 OFF: ${planMatchCount}일`),
+      localSelected.size>0 && el("div",{style:{marginBottom:14}},
+        el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,marginBottom:6,paddingLeft:2}},
+          "이번 달 약속 잡기 좋은 날"),
+        el("div",{style:{display:"flex",gap:6}},
+          el("div",{style:{
+            flex:1,background:"var(--shift-o-light)",border:"1px solid var(--shift-o)",
+            borderRadius:10,padding:"8px 4px",textAlign:"center"
+          }},
+            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"모두 OFF"),
+            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.off}일`)
+          ),
+          el("div",{style:{
+            flex:1,background:"var(--shift-d-light)",border:"1px solid var(--shift-d)",
+            borderRadius:10,padding:"8px 4px",textAlign:"center"
+          }},
+            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"모두 D"),
+            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.d}일`)
+          ),
+          el("div",{style:{
+            flex:1,background:"var(--shift-e-light)",border:"1px solid var(--shift-e)",
+            borderRadius:10,padding:"8px 4px",textAlign:"center"
+          }},
+            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"E+다음OFF"),
+            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.e}일`)
+          )
+        )
+      ),
 
       el("div",{style:{display:"flex",gap:8}},
         el("button",{onClick:handleClear,
@@ -1595,15 +1647,44 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
     return Object.values(members).filter(m=>m.birthMonth===month+1 && m.birthDay===day);
   },[members,month,day]);
 
-  // 약속 잡기 모드: 선택된 사람 전원 + (현재 시점) OFF인 날 강조
+  // 약속 잡기 모드: 3가지 상황 강조
+  // - "off": 선택자 전원 OFF (가장 추천)
+  // - "d": 선택자 전원 D (퇴근 후 약속 가능, 다음 날 무관)
+  // - "e": 선택자 전원 E + 다음 날 전원 OFF (이브닝 끝나고 늦게까지)
   const planMatch = useMemo(()=>{
-    if(!planSelectedIds || planSelectedIds.length===0) return false;
-    // 선택된 모든 사람이 OFF여야 함
+    if(!planSelectedIds || planSelectedIds.length===0) return null;
+
+    // 1. 모두 OFF
+    let allOff = true;
     for(const id of planSelectedIds){
-      if(schedules?.[id]?.[dateKey] !== "O") return false;
+      if(schedules?.[id]?.[dateKey] !== "O"){ allOff = false; break; }
     }
-    return true;
-  },[planSelectedIds,schedules,dateKey]);
+    if(allOff) return "off";
+
+    // 2. 모두 D (다음 날 조건 없음)
+    let allD = true;
+    for(const id of planSelectedIds){
+      if(schedules?.[id]?.[dateKey] !== "D"){ allD = false; break; }
+    }
+    if(allD) return "d";
+
+    // 3. 모두 E + 다음 날 모두 OFF
+    let allE = true;
+    for(const id of planSelectedIds){
+      if(schedules?.[id]?.[dateKey] !== "E"){ allE = false; break; }
+    }
+    if(allE){
+      const nextDate = new Date(year, month, day+1);
+      const nextKey = dKey(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate());
+      let nextAllOff = true;
+      for(const id of planSelectedIds){
+        if(schedules?.[id]?.[nextKey] !== "O"){ nextAllOff = false; break; }
+      }
+      if(nextAllOff) return "e";
+    }
+
+    return null;
+  },[planSelectedIds,schedules,dateKey,year,month,day]);
 
   // 셀 색상
   let bg = "var(--surface-softer)";
@@ -1612,12 +1693,17 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
     cellBorder = `2px solid ${pData.color}`;
   }
   if(planSelectedIds && planSelectedIds.length>0){
-    if(planMatch){
+    if(planMatch === "off"){
+      bg = "var(--shift-o-light)";
+      cellBorder = "2px solid var(--shift-o)";
+    } else if(planMatch === "d"){
+      bg = "var(--shift-d-light)";
+      cellBorder = "2px solid var(--shift-d)";
+    } else if(planMatch === "e"){
       bg = "var(--shift-e-light)";
       cellBorder = "2px solid var(--shift-e)";
     } else {
       bg = "var(--surface-softer)";
-      // dim - 글자도 옅게
     }
   }
   const isDimmed = planSelectedIds && planSelectedIds.length>0 && !planMatch;
@@ -1902,12 +1988,47 @@ function QuickEditPopup({day,year,month,me,members,schedules,onClose}){
   );
 }
 
-function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspective,me,isEditMode,onRequestEdit,onClose}){
+function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspective,me,isEditMode,onRequestEdit,onChangeDay,onClose}){
   const dateKey = dKey(year,month,day);
   const dow = new Date(year,month,day).getDay();
   const allRef = useRef(null);
   const isMyView = isEditMode && perspective===me;
   const [editingDuty,setEditingDuty] = useState(false);
+
+  // 일자 변경 (좌우 스와이프용)
+  const goPrevDay = useCallback(()=>{
+    if(!onChangeDay) return;
+    const d = new Date(year, month, day-1);
+    onChangeDay(d.getFullYear(), d.getMonth(), d.getDate());
+  },[year,month,day,onChangeDay]);
+
+  const goNextDay = useCallback(()=>{
+    if(!onChangeDay) return;
+    const d = new Date(year, month, day+1);
+    onChangeDay(d.getFullYear(), d.getMonth(), d.getDate());
+  },[year,month,day,onChangeDay]);
+
+  // 스와이프 감지 (모달 본문 내부)
+  const swipeRef = useRef({startX:0, startY:0, startTime:0});
+  const onContentTouchStart = (e)=>{
+    if(!e.touches || !e.touches[0]) return;
+    swipeRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      startTime: Date.now()
+    };
+  };
+  const onContentTouchEnd = (e)=>{
+    if(!e.changedTouches || !e.changedTouches[0]) return;
+    const dx = e.changedTouches[0].clientX - swipeRef.current.startX;
+    const dy = e.changedTouches[0].clientY - swipeRef.current.startY;
+    const dt = Date.now() - swipeRef.current.startTime;
+    // 빠르고(<500ms) 충분히 가로(>50px)이고 세로보다 우세
+    if(dt < 500 && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      if(dx > 0) goPrevDay();
+      else goNextDay();
+    }
+  };
 
   useEffect(()=>{
     if(scrollToAll && allRef.current){
@@ -1943,6 +2064,8 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
   },
     el("div",{className:"anim-up",
       onClick:e=>e.stopPropagation(),
+      onTouchStart:onContentTouchStart,
+      onTouchEnd:onContentTouchEnd,
       style:{
         width:"100%",background:"var(--bg-1)",
         borderRadius:"22px 22px 0 0",
@@ -1953,10 +2076,14 @@ function DayModal({day,scrollToAll,year,month,members,schedules,memos,perspectiv
       el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
       // 헤더
       el("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:14}},
+        el("button",{onClick:goPrevDay,
+          style:{fontSize:18,color:"var(--text-faint)",padding:"0 6px"}},"‹"),
         el("div",{style:{fontSize:24,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}},
           `${month+1}월 ${day}일`),
         el("div",{style:{fontSize:14,color:dow===0?"var(--sun)":dow===6?"var(--sat)":"var(--text-faint)",fontWeight:700}},
           `(${WEEKDAYS[dow]})`),
+        el("button",{onClick:goNextDay,
+          style:{fontSize:18,color:"var(--text-faint)",padding:"0 6px"}},"›"),
         el("div",{style:{flex:1}}),
         el("button",{onClick:()=>shareDayAsImage({day,year,month,members,schedules,memos:dayMemos}),
           title:"공유",
