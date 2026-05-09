@@ -773,7 +773,7 @@ function CalendarScreen(props){
       onClose:()=>setQuickEditDay(null)
     }),
     showPlanSheet && el(PlanSheet,{
-      members, schedules, year, month, me,
+      members, schedules, year, month, me, perspective,
       selectedIds: planSelectedIds,
       onChange: (ids)=>{
         setPlanSelectedIds(ids);
@@ -1295,70 +1295,99 @@ function NoticesModal({notices,members,me,isEditMode,onRequestEdit,onClose}){
 }
 
 // ───── 약속 잡기 시트 ─────
-function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose}){
-  const [localSelected,setLocalSelected] = useState(new Set(selectedIds));
+function PlanSheet({members,schedules,year,month,me,perspective,selectedIds,onChange,onClose}){
+  // 시점 사람이 자동 선택되도록 초기 셋업
+  const initialSet = useMemo(()=>{
+    if(selectedIds && selectedIds.length > 0) return new Set(selectedIds);
+    if(perspective && members[perspective]) return new Set([perspective]);
+    return new Set();
+  },[]);
+  const [localSelected,setLocalSelected] = useState(initialSet);
+  const [expanded,setExpanded] = useState(null); // "off" | "d" | "e" | null
+
   const list = useMemo(()=>
     Object.entries(members).sort((a,b)=>(a[1].joinedAt||0)-(b[1].joinedAt||0))
   ,[members]);
 
-  // 각 멤버별 이번 달 본인이랑 OFF 겹치는 일수 (시점 = me 기준)
+  // 각 멤버별 시점 사람과 OFF 겹치는 일수 (시점 기준)
   const overlapDays = useMemo(()=>{
     const result = {};
-    if(!me) return result;
-    const mySchedule = schedules?.[me] || {};
+    if(!perspective) return result;
+    const baseSchedule = schedules?.[perspective] || {};
     const daysInMonth = new Date(year, month+1, 0).getDate();
     list.forEach(([id,m])=>{
-      if(id===me){ result[id] = null; return; }
+      if(id===perspective){ result[id] = null; return; }
       const other = schedules?.[id] || {};
       let cnt = 0;
       for(let d=1; d<=daysInMonth; d++){
         const k = dKey(year,month,d);
-        if(mySchedule[k]==="O" && other[k]==="O") cnt++;
+        if(baseSchedule[k]==="O" && other[k]==="O") cnt++;
       }
       result[id] = cnt;
     });
     return result;
-  },[list,schedules,me,year,month]);
+  },[list,schedules,perspective,year,month]);
 
-  // 모두 매칭되는 날 카운트 (선택된 사람들 기준) - 3가지 상황별
-  const planMatchCounts = useMemo(()=>{
-    if(localSelected.size===0) return { off:0, d:0, e:0 };
+  // 매칭되는 날짜들 (선택된 사람들 기준) - 3가지 상황별
+  // 각 항목: { day: number, warnings: string[] }
+  const planMatches = useMemo(()=>{
+    const off = []; const d = []; const e = [];
+    if(localSelected.size===0) return { off, d, e };
     const daysInMonth = new Date(year, month+1, 0).getDate();
-    let offCnt = 0, dCnt = 0, eCnt = 0;
-    for(let d=1; d<=daysInMonth; d++){
-      const k = dKey(year,month,d);
+    const selArr = Array.from(localSelected);
+
+    for(let day=1; day<=daysInMonth; day++){
+      const k = dKey(year,month,day);
 
       // 1. 모두 OFF
       let allOff = true;
-      for(const id of localSelected){
+      for(const id of selArr){
         if(schedules?.[id]?.[k] !== "O"){ allOff = false; break; }
       }
-      if(allOff){ offCnt++; continue; }
+      if(allOff){ off.push({day, warnings:[]}); continue; }
 
       // 2. 모두 D
       let allD = true;
-      for(const id of localSelected){
+      for(const id of selArr){
         if(schedules?.[id]?.[k] !== "D"){ allD = false; break; }
       }
-      if(allD){ dCnt++; continue; }
+      if(allD){
+        // 다음 날 OFF 아닌 사람 체크
+        const nextDate = new Date(year, month, day+1);
+        const nextKey = dKey(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate());
+        const nonOffPeople = []; // [{name, code}]
+        for(const id of selArr){
+          const s = schedules?.[id]?.[nextKey];
+          if(s && s !== "O"){
+            nonOffPeople.push({name: members[id]?.name || "?", code: s});
+          }
+        }
+        d.push({day, warnings: nonOffPeople});
+        continue;
+      }
 
-      // 3. 모두 E + 다음 날 모두 OFF
+      // 3. 모두 E + 다음 날 모두 OFF 또는 N
       let allE = true;
-      for(const id of localSelected){
+      for(const id of selArr){
         if(schedules?.[id]?.[k] !== "E"){ allE = false; break; }
       }
       if(allE){
-        const nextDate = new Date(year, month, d+1);
+        const nextDate = new Date(year, month, day+1);
         const nextKey = dKey(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate());
-        let nextAllOff = true;
-        for(const id of localSelected){
-          if(schedules?.[id]?.[nextKey] !== "O"){ nextAllOff = false; break; }
+        let allOffOrN = true;
+        const nPeople = [];
+        for(const id of selArr){
+          const s = schedules?.[id]?.[nextKey];
+          if(s !== "O" && s !== "N"){ allOffOrN = false; break; }
+          if(s === "N") nPeople.push(members[id]?.name || "?");
         }
-        if(nextAllOff) eCnt++;
+        if(allOffOrN){
+          e.push({day, warnings: nPeople});
+        }
       }
     }
-    return { off:offCnt, d:dCnt, e:eCnt };
-  },[localSelected,schedules,year,month]);
+    return { off, d, e };
+  },[localSelected,schedules,members,year,month]);
 
   const toggle = (id)=>{
     const next = new Set(localSelected);
@@ -1377,6 +1406,82 @@ function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose
     onChange([]);
     onClose();
   };
+
+  // 날짜 리스트 → "3일, 8일, 10일" 형식
+  const formatDays = (items)=>items.map(it=>`${it.day}일`).join(", ");
+
+  // 셀 라벨 줄: "8일은 슬기가 다음 날 N." / "15일은 슬기, 지원이 다음 날 D, E."
+  const formatDWarning = (item)=>{
+    if(item.warnings.length === 0) return null;
+    if(item.warnings.length === 1){
+      const p = item.warnings[0];
+      return `${item.day}일은 ${p.name}이/가 다음 날 ${p.code}.`;
+    }
+    const names = item.warnings.map(p=>p.name).join(", ");
+    const codes = item.warnings.map(p=>p.code).join(", ");
+    return `${item.day}일은 ${names}이/가 다음 날 ${codes}.`;
+  };
+
+  const formatEWarning = (item)=>{
+    if(item.warnings.length === 0) return `${item.day}일은 다음 날 전부 OFF.`;
+    if(item.warnings.length === 1){
+      return `${item.day}일은 ${item.warnings[0]}이/가 다음 날 N.`;
+    }
+    return `${item.day}일은 ${item.warnings.join(", ")}이/가 다음 날 N.`;
+  };
+
+  // 각 행 렌더
+  const renderRow = (key, label, items, color, bg, formatWarn, hasWarnPerItem)=>{
+    const count = items.length;
+    const isExpanded = expanded === key && count > 0;
+    return el("div",{style:{
+      background: bg,
+      border:`1px solid ${color}`,
+      borderRadius:12,
+      marginBottom:6,
+      overflow:"hidden"
+    }},
+      el("button",{onClick:()=>setExpanded(isExpanded ? null : key),
+        disabled: count === 0,
+        style:{
+          width:"100%",padding:"10px 14px",
+          display:"flex",alignItems:"center",gap:10,
+          textAlign:"left",
+          opacity: count === 0 ? 0.55 : 1
+        }
+      },
+        el("div",{style:{
+          width:10,height:10,borderRadius:"50%",
+          background: color,flexShrink:0
+        }}),
+        el("div",{style:{flex:1,fontSize:13,fontWeight:700,color:"var(--text)"}}, label),
+        el("div",{style:{fontSize:14,fontWeight:800,color:"var(--text)"}},
+          count === 0 ? "없음" : count),
+        count > 0 && el("div",{style:{fontSize:12,color:"var(--text-faint)",marginLeft:4}},
+          isExpanded ? "▲" : "▽")
+      ),
+      isExpanded && el("div",{className:"anim-down",style:{
+        padding:"6px 14px 12px",
+        borderTop:`1px solid ${color}`,
+        background:"var(--surface-softer)"
+      }},
+        el("div",{style:{fontSize:12,color:"var(--text)",fontWeight:700,marginBottom:hasWarnPerItem?6:0,lineHeight:1.5}},
+          formatDays(items)),
+        hasWarnPerItem && items.filter(it=>{
+          const w = formatWarn(it);
+          return w !== null;
+        }).map(it=>
+          el("div",{key:it.day,style:{fontSize:11,color:"var(--text-sub)",marginTop:3,lineHeight:1.5}},
+            formatWarn(it))
+        )
+      )
+    );
+  };
+
+  // 가이드 문구
+  let guideText = "";
+  if(localSelected.size === 0) guideText = "약속 잡을 사람을 선택해주세요";
+  else if(localSelected.size === 1) guideText = "누구와 약속을 잡을까요?";
 
   return el("div",{className:"anim-fade",
     onClick:onClose,
@@ -1397,13 +1502,13 @@ function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose
       el("div",{style:{width:36,height:4,background:"var(--border-soft)",borderRadius:2,margin:"0 auto 14px"}}),
       el("div",{style:{fontSize:18,fontWeight:800,color:"var(--text)",marginBottom:4}},"👥 약속 잡기"),
       el("div",{style:{fontSize:12,color:"var(--text-faint)",marginBottom:14,lineHeight:1.5}},
-        "함께 약속 잡을 사람을 선택해. 모두 OFF인 날이 캘린더에 강조됩니다."),
+        "함께 약속 잡을 사람을 선택해. 매칭되는 날이 캘린더에 강조됩니다."),
 
       el("div",{style:{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:14}},
         list.map(([id,m])=>{
-          if(id===me) return null;
           const sel = localSelected.has(id);
           const ov = overlapDays[id];
+          const isPerspective = id === perspective;
           return el("button",{key:id,onClick:()=>toggle(id),
             style:{
               display:"flex",alignItems:"center",gap:10,
@@ -1419,40 +1524,28 @@ function PlanSheet({members,schedules,year,month,me,selectedIds,onChange,onClose
               flexShrink:0
             }}),
             el("div",{style:{flex:1,textAlign:"left",minWidth:0}},
-              el("div",{style:{fontSize:14,fontWeight:700,color: sel ? "var(--surface)" : "var(--text)"}},m.name),
+              el("div",{style:{fontSize:14,fontWeight:700,color: sel ? "var(--surface)" : "var(--text)"}}, m.name),
               el("div",{style:{fontSize:10,fontWeight:600,color: sel ? "var(--surface)" : "var(--text-faint)",marginTop:1,opacity: sel?0.85:1}},
-                ov!=null ? `이번 달 ${ov}일 겹침` : "")
+                isPerspective ? "본인" : (ov!=null ? `OFF ${ov}일 겹침` : ""))
             )
           );
         })
       ),
 
-      localSelected.size>0 && el("div",{style:{marginBottom:14}},
+      // 가이드 문구 (0명 또는 1명)
+      guideText && el("div",{style:{
+        background:"var(--surface-faint)",borderRadius:12,
+        padding:"14px 14px",marginBottom:14,
+        fontSize:13,color:"var(--text-sub)",fontWeight:600,textAlign:"center"
+      }}, guideText),
+
+      // 카운트 영역 (2명 이상)
+      localSelected.size >= 2 && el("div",{style:{marginBottom:14}},
         el("div",{style:{fontSize:11,color:"var(--text-faint)",fontWeight:600,marginBottom:6,paddingLeft:2}},
           "이번 달 약속 잡기 좋은 날"),
-        el("div",{style:{display:"flex",gap:6}},
-          el("div",{style:{
-            flex:1,background:"var(--shift-o-light)",border:"1px solid var(--shift-o)",
-            borderRadius:10,padding:"8px 4px",textAlign:"center"
-          }},
-            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"모두 OFF"),
-            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.off}일`)
-          ),
-          el("div",{style:{
-            flex:1,background:"var(--shift-d-light)",border:"1px solid var(--shift-d)",
-            borderRadius:10,padding:"8px 4px",textAlign:"center"
-          }},
-            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"모두 D"),
-            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.d}일`)
-          ),
-          el("div",{style:{
-            flex:1,background:"var(--shift-e-light)",border:"1px solid var(--shift-e)",
-            borderRadius:10,padding:"8px 4px",textAlign:"center"
-          }},
-            el("div",{style:{fontSize:10,color:"var(--text-sub)",fontWeight:600,marginBottom:2}},"E+다음OFF"),
-            el("div",{style:{fontSize:16,color:"var(--text)",fontWeight:800}}, `${planMatchCounts.e}일`)
-          )
-        )
+        renderRow("off", "모두 OFF", planMatches.off, "var(--shift-o)", "var(--shift-o-light)", null, false),
+        renderRow("d", "모두 D", planMatches.d, "var(--shift-d)", "var(--shift-d-light)", formatDWarning, true),
+        renderRow("e", "E + 다음 OFF/N", planMatches.e, "var(--shift-e)", "var(--shift-e-light)", formatEWarning, true)
       ),
 
       el("div",{style:{display:"flex",gap:8}},
@@ -1668,7 +1761,7 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
     }
     if(allD) return "d";
 
-    // 3. 모두 E + 다음 날 모두 OFF
+    // 3. 모두 E + 다음 날 모두 OFF 또는 N
     let allE = true;
     for(const id of planSelectedIds){
       if(schedules?.[id]?.[dateKey] !== "E"){ allE = false; break; }
@@ -1676,11 +1769,12 @@ function DayCell({day,year,month,today,dow,members,schedules,memos,perspective,p
     if(allE){
       const nextDate = new Date(year, month, day+1);
       const nextKey = dKey(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate());
-      let nextAllOff = true;
+      let allOffOrN = true;
       for(const id of planSelectedIds){
-        if(schedules?.[id]?.[nextKey] !== "O"){ nextAllOff = false; break; }
+        const s = schedules?.[id]?.[nextKey];
+        if(s !== "O" && s !== "N"){ allOffOrN = false; break; }
       }
-      if(nextAllOff) return "e";
+      if(allOffOrN) return "e";
     }
 
     return null;
